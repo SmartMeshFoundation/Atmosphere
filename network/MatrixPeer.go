@@ -32,7 +32,7 @@ func (s peerStatus) String() string {
 	return "error status"
 }
 
-//MatrixPeer is the  photon node on matrix server
+//MatrixPeer is the  atmosphere node on matrix server
 type MatrixPeer struct {
 	address common.Address //需要通信的对象
 	//address 对应的所有可能的 User

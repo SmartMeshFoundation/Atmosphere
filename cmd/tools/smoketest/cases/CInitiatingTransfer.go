@@ -109,7 +109,7 @@ func testTransfer(param *testTransferParams) {
 // find a opened channel from env, if there is none, create one
 func prepareDataForDirectTransfer(env *models.PhotonEnvReader) (sender *models.PhotonNode, receiver *models.PhotonNode, token *models.Token, err error) {
 	if len(env.PhotonNodes) < 2 {
-		err = errors.New("no enough photon node")
+		err = errors.New("no enough atmosphere node")
 		return
 	}
 	sender, receiver = env.PhotonNodes[0], env.PhotonNodes[1]
@@ -129,7 +129,7 @@ func prepareDataForDirectTransfer(env *models.PhotonEnvReader) (sender *models.P
 // find a enable route from env, if there is none, create one
 func prepareDataForIndirectTransfer(env *models.PhotonEnvReader) (sender *models.PhotonNode, receiver *models.PhotonNode, token *models.Token, err error) {
 	if len(env.PhotonNodes) < 3 {
-		err = errors.New("no enough photon node")
+		err = errors.New("no enough atmosphere node")
 		return
 	}
 	sender, mid, receiver := env.PhotonNodes[0], env.PhotonNodes[1], env.PhotonNodes[2]

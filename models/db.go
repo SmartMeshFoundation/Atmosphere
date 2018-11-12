@@ -15,8 +15,8 @@ import (
 	"github.com/SmartMeshFoundation/Atmosphere/models/cb"
 	"github.com/asdine/storm"
 	gobcodec "github.com/asdine/storm/codec/gob"
+	"github.com/coreos/bbolt"
 	"github.com/ethereum/go-ethereum/common"
-	bolt "go.etcd.io/bbolt"
 )
 
 //ModelDB is thread safe

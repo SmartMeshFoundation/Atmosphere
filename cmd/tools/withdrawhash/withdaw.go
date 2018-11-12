@@ -38,7 +38,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "address",
-			Usage: "The ethereum address you would like photon to use and for which a keystore file exists in your local system.",
+			Usage: "The ethereum address you would like atmosphere to use and for which a keystore file exists in your local system.",
 			Value: utils.EmptyAddress.String(),
 		},
 		cli.StringFlag{
@@ -55,7 +55,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "datadir",
-			Usage: "Directory for storing photon data.",
+			Usage: "Directory for storing atmosphere data.",
 			Value: params.DefaultDataDir(),
 		},
 		cli.StringFlag{

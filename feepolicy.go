@@ -1,4 +1,4 @@
-package photon
+package atmosphere
 
 import (
 	"math/big"

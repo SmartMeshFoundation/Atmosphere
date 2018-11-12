@@ -90,7 +90,7 @@ func ExecShell(cmdstr string, param []string, logfile string, canquit bool) bool
 	return true
 }
 
-// StartPhotonNode : start photon
+// StartPhotonNode : start atmosphere
 func StartPhotonNode(RegistryAddress string) {
 	paramsSection := "PHOTON_PARAMS"
 	var pstr []string
@@ -100,11 +100,11 @@ func StartPhotonNode(RegistryAddress string) {
 	if runtime.GOOS == "windows" {
 		pstr2 = append(pstr2, "-F")
 		pstr2 = append(pstr2, "-IM")
-		pstr2 = append(pstr2, "photon*")
+		pstr2 = append(pstr2, "atmosphere*")
 		ExecShell("taskkill", pstr2, "./log/killall.log", true)
 	} else {
 		pstr2 = append(pstr2, "-s INT")
-		pstr2 = append(pstr2, "photon")
+		pstr2 = append(pstr2, "atmosphere")
 		ExecShell("killall", pstr2, "./log/killall.log", true)
 	}
 	//kill the old process and wait for the release of the port
@@ -117,7 +117,7 @@ func StartPhotonNode(RegistryAddress string) {
 		log.Println("Read error:", err)
 		return
 	}
-	param.datadir = c.RdString(paramsSection, "datadir", "/smtwork/share/.photon")
+	param.datadir = c.RdString(paramsSection, "datadir", "/smtwork/share/.atmosphere")
 	param.keystorePath = c.RdString(paramsSection, "keystore_path", "/smtwork/privnet3/data/keystore")
 	if RegistryAddress == "" {
 		param.registryContractAddress = c.RdString(paramsSection, "registry_contract_address", "")
@@ -129,7 +129,7 @@ func StartPhotonNode(RegistryAddress string) {
 	param.passwordFile = c.RdString(paramsSection, "password_file", "")
 	param.ethRPCEndpoint = c.RdString(paramsSection, "eth_rpc_endpoint", "ws://127.0.0.1:8546")
 	param.debug = c.RdBool(paramsSection, "debug", true)
-	//start 6 photon node
+	//start 6 atmosphere node
 	var NODE string
 	exepath := c.RdString(paramsSection, "photonpath", "")
 	for i := 0; i < 6; i++ {
@@ -141,7 +141,7 @@ func StartPhotonNode(RegistryAddress string) {
 		logfile := fmt.Sprintf("./log/N%d.log", i)
 		go ExecShell(exepath, pstr, logfile, false)
 	}
-	log.Println("Sleep 60 seconds to wait photon nodes start ...")
+	log.Println("Sleep 60 seconds to wait atmosphere nodes start ...")
 	time.Sleep(60 * time.Second)
 	log.Println("Photon nodes start done")
 }

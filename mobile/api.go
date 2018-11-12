@@ -583,7 +583,7 @@ func (a *API) TokenPartners(tokenAddress string) (channels string, err error) {
 }
 
 /*
-RegisterToken  Registering a new Token to smart photon
+RegisterToken  Registering a new Token to smart atmosphere
 returns the new token's corresponding TokenNetwork Contract address.
 for example:
 tokenNetworkAddress: 0xBb1e95363b0181De7bBf394f18eaC7D4230e391A

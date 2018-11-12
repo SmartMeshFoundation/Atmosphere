@@ -67,7 +67,7 @@ func Transfers(w rest.ResponseWriter, r *rest.Request) {
 	// 用户调用了prepare-update,暂停接收新交易
 	// client invokes prepare-update, halts receiving new transfers.
 	if API.Photon.StopCreateNewTransfers {
-		rest.Error(w, "Stop create new transfers, please restart photon", http.StatusBadRequest)
+		rest.Error(w, "Stop create new transfers, please restart atmosphere", http.StatusBadRequest)
 		return
 	}
 	token := r.PathParam("token")

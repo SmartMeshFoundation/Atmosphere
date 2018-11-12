@@ -41,11 +41,11 @@ const (
 	defaultTimeout   = 15 * time.Second
 	defaultReconnect = true
 	nameSuffix       = "@mobileraiden"
-	//TypeMobile photon run on a mobile device
+	//TypeMobile atmosphere run on a mobile device
 	TypeMobile = "mobile"
-	//TypeMeshBox photon run on a meshbox
+	//TypeMeshBox atmosphere run on a meshbox
 	TypeMeshBox = "meshbox"
-	//TypeOtherDevice photon run on a other device
+	//TypeOtherDevice atmosphere run on a other device
 	TypeOtherDevice = "other"
 )
 
@@ -73,7 +73,7 @@ type DataHandler interface {
 	DataHandler(from common.Address, data []byte)
 }
 
-//NodeStatus is status of a photon node
+//NodeStatus is status of a atmosphere node
 type NodeStatus struct {
 	IsOnline   bool
 	DeviceType string

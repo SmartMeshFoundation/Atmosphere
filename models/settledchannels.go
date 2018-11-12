@@ -7,8 +7,8 @@ import (
 	"encoding/gob"
 
 	"github.com/SmartMeshFoundation/Atmosphere/channel/channeltype"
+	"github.com/coreos/bbolt"
 	"github.com/ethereum/go-ethereum/common"
-	bolt "go.etcd.io/bbolt"
 )
 
 /*

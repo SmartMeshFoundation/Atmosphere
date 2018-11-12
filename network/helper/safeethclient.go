@@ -51,7 +51,7 @@ func NewSafeClient(rawurl string) (*SafeEthClient, error) {
 	return c, nil
 }
 
-//Close connection when destroy photon service
+//Close connection when destroy atmosphere service
 func (c *SafeEthClient) Close() {
 	if c.Client != nil {
 		c.Client.Close()

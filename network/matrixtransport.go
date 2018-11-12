@@ -38,7 +38,7 @@ const (
 	// UNKNOWN or other state -unknown
 	UNKNOWN = "unknown"
 	// ROOMPREFIX room prefix
-	ROOMPREFIX = "photon"
+	ROOMPREFIX = "atmosphere"
 	// ROOMSEP with ',' to separate room name's part
 	ROOMSEP = "_"
 	// PATHPREFIX0 the lastest matrix client api version
@@ -50,7 +50,7 @@ const (
 	// CHATPRESET the type of chat=public
 	CHATPRESET = "public_chat"
 	//EventAddressRoom is user defined event type
-	EventAddressRoom = "network.photon.rooms"
+	EventAddressRoom = "network.atmosphere.rooms"
 )
 
 type jobType int
@@ -1047,7 +1047,7 @@ func (m *MatrixTransport) userIDToAddress(userID string) common.Address {
 		m.log.Warn(fmt.Sprintf("UserID %s, format error", userID))
 		return utils.EmptyAddress
 	}
-	addressHex, err := extractUserLocalpart(userID) //"@myname:photon.org:cy"->"myname"
+	addressHex, err := extractUserLocalpart(userID) //"@myname:atmosphere.org:cy"->"myname"
 	if err != nil {
 		m.log.Error(fmt.Sprintf("extractUserLocalpart err %s", err))
 		return utils.EmptyAddress
@@ -1378,7 +1378,7 @@ func validateUseridSignature(user *gomatrix.UserInfo) (address common.Address, e
 		err = fmt.Errorf("validate user info failed")
 		return
 	}
-	_address, err := extractUserLocalpart(user.UserID) //"@myname:photon.org:cy"->"myname"
+	_address, err := extractUserLocalpart(user.UserID) //"@myname:atmosphere.org:cy"->"myname"
 	if err != nil {
 		return
 	}

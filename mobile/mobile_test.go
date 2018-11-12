@@ -10,7 +10,7 @@ import (
 
 	"time"
 
-	"github.com/SmartMeshFoundation/Atmosphere/cmd/photon/mainimpl"
+	"github.com/SmartMeshFoundation/Atmosphere/cmd/atmosphere/mainimpl"
 	"github.com/SmartMeshFoundation/Atmosphere/network/rpc"
 	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/restful/v1"

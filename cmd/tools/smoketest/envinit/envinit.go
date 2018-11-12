@@ -94,7 +94,7 @@ func Main(ctx *cli.Context) error {
 		}()
 	}
 	wg.Wait()
-	err = env.WriteFile("../env.INI", 0644, "photon smoke test envInit")
+	err = env.WriteFile("../env.INI", 0644, "atmosphere smoke test envInit")
 	return err
 }
 func promptAccount(keystorePath string) (addr common.Address, key *ecdsa.PrivateKey) {

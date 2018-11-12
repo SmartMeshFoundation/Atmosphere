@@ -54,11 +54,11 @@ func TestStruct(t *testing.T) {
 
 func TestStart(t *testing.T) {
 	os.Args = make([]string, 0, 20)
-	os.Args = append(os.Args, "photon")
+	os.Args = append(os.Args, "atmosphere")
 	os.Args = append(os.Args, fmt.Sprintf("--address=%s", "0x1a9ec3b0b807464e6d3398a59d6b0a369bf422fa"))
 	os.Args = append(os.Args, fmt.Sprintf("--keystore-path=%s", "../../../testdata/keystore"))
 	os.Args = append(os.Args, fmt.Sprintf("--eth-rpc-endpoint=%s", os.Getenv("ETHRPCENDPOINT")))
-	os.Args = append(os.Args, fmt.Sprintf("--datadir=%s", ".photon"))
+	os.Args = append(os.Args, fmt.Sprintf("--datadir=%s", ".atmosphere"))
 	os.Args = append(os.Args, fmt.Sprintf("--password-file=%s", "../../../testdata/keystore/pass"))
 	os.Args = append(os.Args, fmt.Sprintf("--api-address=%s", "127.0.0.1:2000"))
 	os.Args = append(os.Args, fmt.Sprintf("--listen-address=%s", "127.0.0.1:20000"))
@@ -70,7 +70,7 @@ func TestStart(t *testing.T) {
 	var api *photon.API
 	var err error
 	// 1. 无公链第一次启动,must fail
-	clearData(".photon")
+	clearData(".atmosphere")
 	os.Args[3] = fmt.Sprintf("--eth-rpc-endpoint=%s", "ws://127.0.0.1:9999")
 	api, err = StartMain()
 	assert.Error(t, err)
@@ -78,7 +78,7 @@ func TestStart(t *testing.T) {
 	api = nil
 	err = nil
 	// 2. 有公链第一次启动,must success
-	clearData(".photon")
+	clearData(".atmosphere")
 	os.Args[3] = fmt.Sprintf("--eth-rpc-endpoint=%s", os.Getenv("ETHRPCENDPOINT"))
 	api, err = StartMain()
 	assert.Empty(t, err)
@@ -113,9 +113,9 @@ func TestMeshBoxStart(t *testing.T) {
 		return
 	}
 	os.Args = make([]string, 0, 20)
-	os.Args = append(os.Args, "photon")
+	os.Args = append(os.Args, "atmosphere")
 	os.Args = append(os.Args, fmt.Sprintf("--eth-rpc-endpoint=%s", os.Getenv("ETHRPCENDPOINT")))
-	os.Args = append(os.Args, fmt.Sprintf("--datadir=%s", ".photon"))
+	os.Args = append(os.Args, fmt.Sprintf("--datadir=%s", ".atmosphere"))
 	os.Args = append(os.Args, fmt.Sprintf("--api-address=%s", "127.0.0.1:2000"))
 	os.Args = append(os.Args, fmt.Sprintf("--listen-address=%s", "127.0.0.1:20000"))
 	os.Args = append(os.Args, fmt.Sprintf("--verbosity=5"))
@@ -125,7 +125,7 @@ func TestMeshBoxStart(t *testing.T) {
 	var api *photon.API
 	var err error
 	// 1. 无公链第一次启动,must fail
-	clearData(".photon")
+	clearData(".atmosphere")
 	api, err = StartMain()
 	if err != nil {
 		panic(err)
@@ -144,7 +144,7 @@ func clearData(dataPath string) {
 		}
 		name := fi.Name()
 
-		if name == ".photon" {
+		if name == ".atmosphere" {
 			err := os.RemoveAll(path)
 			if err != nil {
 				fmt.Println("delet dir error:", err)

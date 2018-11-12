@@ -14,7 +14,7 @@ import (
 //InitialPort listening port for communication bewtween nodes
 const InitialPort = 40001
 
-//GasLimit max gas usage for photon tx
+//GasLimit max gas usage for atmosphere tx
 const GasLimit = 3141592 //den's gasLimit.
 //GasPrice from ethereum
 const GasPrice = params.Shannon * 20
@@ -92,7 +92,7 @@ func init() {
 }
 
 /*
-MobileMode works on mobile device, 移动设备模式,这时候 photon 并不是一个独立的进程,这时候很多工作模式要发生变化.
+MobileMode works on mobile device, 移动设备模式,这时候 atmosphere 并不是一个独立的进程,这时候很多工作模式要发生变化.
 比如:
 1.不能任意退出
 2. 对于网络通信的处理要更谨慎
@@ -101,7 +101,7 @@ MobileMode works on mobile device, 移动设备模式,这时候 photon 并不是
 /*
  *	MobileMode : a boolean value to adapt with mobile modes.
  *
- *	Note : if true, then photon is not an individual process, work mode is about to change.
+ *	Note : if true, then atmosphere is not an individual process, work mode is about to change.
  *		1. not support exit arbitrarily.
  *		2. handle internet communication more prudent.
  *		3. How to control amount of resource consumption.

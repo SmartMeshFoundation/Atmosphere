@@ -7,7 +7,7 @@ import (
 
 	"runtime/debug"
 
-	"github.com/SmartMeshFoundation/Atmosphere/cmd/photon/mainimpl"
+	"github.com/SmartMeshFoundation/Atmosphere/cmd/atmosphere/mainimpl"
 	"github.com/SmartMeshFoundation/Atmosphere/params"
 )
 
@@ -16,11 +16,11 @@ func init() {
 }
 
 /*
-StartUp is entry point for mobile photon.
+StartUp is entry point for mobile atmosphere.
 address is the Node address,such as 0x1a9ec3b0b807464e6d3398a59d6b0a369bf422fa.
 keystorePath is the address of the private key,  geth keystore directory . eg ~/.geth/keystore.
 ethRpcEndPoint is the URL connected to geth ,such as:ws://10.0.0.2:8546.
-dataDir is the working directory of a node, such as ~/.photon .
+dataDir is the working directory of a node, such as ~/.atmosphere .
 passwordfile is the file to storage password eg ~/.geth/pass.txt .
 apiAddr is  127.0.0.1:5001 for product,0.0.0.1:5001 for test .
 listenAddr is the listenning address for incomming message from peers.

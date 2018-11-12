@@ -14,7 +14,7 @@ import (
 	"github.com/SmartMeshFoundation/Atmosphere/params"
 )
 
-// PhotonNode a photon node
+// PhotonNode a atmosphere node
 type PhotonNode struct {
 	Host          string
 	Address       string
@@ -26,7 +26,7 @@ type PhotonNode struct {
 	Running       bool
 }
 
-// Start start a photon node
+// Start start a atmosphere node
 func (node *PhotonNode) Start(env *TestEnv) {
 	logfile := fmt.Sprintf("./log/%s.log", env.CaseName+"-"+node.Name)
 	go ExecShell(env.Main, node.getParamStr(env), logfile, true)
@@ -43,7 +43,7 @@ func (node *PhotonNode) Start(env *TestEnv) {
 			} else {
 				Logger.Printf("NODE %s %s start TIMEOUT\n", node.Address, node.Host)
 			}
-			panic("Start photon node TIMEOUT")
+			panic("Start atmosphere node TIMEOUT")
 		}
 	}
 	used := time.Since(t)
@@ -61,7 +61,7 @@ func (node *PhotonNode) Start(env *TestEnv) {
 	}
 }
 
-// ReStartWithoutConditionquit : Restart start a photon node
+// ReStartWithoutConditionquit : Restart start a atmosphere node
 func (node *PhotonNode) ReStartWithoutConditionquit(env *TestEnv) {
 	node.DebugCrash = false
 	node.ConditionQuit = nil
@@ -99,7 +99,7 @@ func (node *PhotonNode) getParamStr(env *TestEnv) []string {
 	return param
 }
 
-// StartWithConditionQuit start a photon node whit condition quit
+// StartWithConditionQuit start a atmosphere node whit condition quit
 func (node *PhotonNode) StartWithConditionQuit(env *TestEnv, c *params.ConditionQuit) {
 	node.ConditionQuit = c
 	node.DebugCrash = true

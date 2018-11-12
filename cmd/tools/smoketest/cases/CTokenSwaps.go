@@ -69,7 +69,7 @@ func testTokenSwap(param *testTokenSwapParams) {
 
 func prepareDataForDirectTokenSwap(env *models.PhotonEnvReader) (sender *models.PhotonNode, receiver *models.PhotonNode, token1 *models.Token, token2 *models.Token, err error) {
 	if len(env.PhotonNodes) < 2 {
-		err = errors.New("no enough photon node")
+		err = errors.New("no enough atmosphere node")
 		return
 	}
 	if len(env.Tokens) < 2 {
@@ -91,7 +91,7 @@ func prepareDataForDirectTokenSwap(env *models.PhotonEnvReader) (sender *models.
 
 func prepareDataForIndirectTokenSwap(env *models.PhotonEnvReader) (sender *models.PhotonNode, receiver *models.PhotonNode, token1 *models.Token, token2 *models.Token, err error) {
 	if len(env.PhotonNodes) < 3 {
-		err = errors.New("no enough photon node")
+		err = errors.New("no enough atmosphere node")
 		return
 	}
 	if len(env.Tokens) < 2 {

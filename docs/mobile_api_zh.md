@@ -127,7 +127,7 @@ type NotifyHandler interface {
 	OnReceivedTransfer(tr string)
 	//OnSentTransfer a transfer sent success
 	OnSentTransfer(tr string)
-	// OnNotify get some important message photon want to notify upper application
+	atmosphere
 	OnNotify(level int, info string)
 }
 ```

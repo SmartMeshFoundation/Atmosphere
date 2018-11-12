@@ -1,4 +1,4 @@
-package photon
+package atmosphere
 
 import (
 	"encoding/binary"
@@ -33,7 +33,7 @@ import (
 
 var errEthConnectionNotReady = errors.New("eth connection not ready")
 
-//API photon for user
+//API atmosphere for user
 /* #nolint */
 type API struct {
 	Photon *Service
@@ -102,7 +102,7 @@ func (r *API) TokenAddressIfTokenRegistered(tokenAddress common.Address) (mgrAdd
 }
 
 /*
-RegisterToken Will register the token at `token_address` with photon. If it's already
+RegisterToken Will register the token at `token_address` with atmosphere. If it's already
     registered, will throw an exception.
 */
 func (r *API) RegisterToken(tokenAddress common.Address) (mgrAddr common.Address, err error) {
@@ -715,7 +715,7 @@ func (r *API) GetTokenNetworkEvents(tokenAddress common.Address, fromBlock, toBl
 	return
 }
 
-//GetNetworkEvents all photon events
+//GetNetworkEvents all atmosphere events
 func (r *API) GetNetworkEvents(fromBlock, toBlock int64) ([]interface{}, error) {
 	//type eventData struct {
 	//	/*
@@ -789,7 +789,7 @@ func (r *API) GetChannelEvents(channelIdentifier common.Hash, fromBlock, toBlock
 	//if err != nil {
 	//	return
 	//}
-	////Here choose which photon internal events we want to expose to the end user
+	////Here choose which atmosphere internal events we want to expose to the end user
 	//for _, ev := range photonEvents {
 	//	m := make(map[string]interface{})
 	//	switch e2 := ev.EventObject.(type) {

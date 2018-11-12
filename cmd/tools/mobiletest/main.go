@@ -19,7 +19,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "address",
-			Usage: "The ethereum address you would like photon to use and for which a keystore file exists in your local system.",
+			Usage: "The ethereum address you would like atmosphere to use and for which a keystore file exists in your local system.",
 		},
 		ethutils.DirectoryFlag{
 			Name:  "keystore-path",
@@ -36,7 +36,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "listen-address",
-			Usage: `"host:port" for the photon service to listen on.`,
+			Usage: `"host:port" for the atmosphere service to listen on.`,
 			Value: fmt.Sprintf("0.0.0.0:%d", params.InitialPort),
 		},
 		cli.StringFlag{
@@ -45,7 +45,7 @@ func main() {
 		},
 		ethutils.DirectoryFlag{
 			Name:  "datadir",
-			Usage: "Directory for storing photon data.",
+			Usage: "Directory for storing atmosphere data.",
 		},
 		cli.StringFlag{
 			Name:  "password-file",

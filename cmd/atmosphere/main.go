@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/SmartMeshFoundation/Atmosphere/cmd/photon/mainimpl"
+	"github.com/SmartMeshFoundation/Atmosphere/cmd/atmosphere/mainimpl"
 )
 
 func main() {

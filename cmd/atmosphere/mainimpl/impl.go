@@ -50,7 +50,7 @@ func init() {
 	//debug2.SetTraceback("crash")
 }
 
-var api *photon.API
+var api *atmosphere.API
 
 //GoVersion genegate at build time
 var GoVersion string
@@ -64,19 +64,19 @@ var BuildDate string
 //Version version of this build
 var Version string
 
-//StartMain entry point of photon app
-func StartMain() (*photon.API, error) {
-	os.Args[0] = "photon"
+//StartMain entry point of atmosphere app
+func StartMain() (*atmosphere.API, error) {
+	os.Args[0] = "atmosphere"
 	fmt.Printf("GoVersion=%s\nGitCommit=%s\nbuilddate=%sVersion=%s\n", GoVersion, GitCommit, BuildDate, Version)
 	fmt.Printf("os.args=%q\n", os.Args)
 	if len(GitCommit) != len(utils.EmptyAddress)*2 {
-		return nil, fmt.Errorf("photon must build use makefile")
+		return nil, fmt.Errorf("atmosphere must build use makefile")
 	}
 	app := cli.NewApp()
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "address",
-			Usage: "The ethereum address you would like photon to use and for which a keystore file exists in your local system.",
+			Usage: "The ethereum address you would like atmosphere to use and for which a keystore file exists in your local system.",
 		},
 		ethutils.DirectoryFlag{
 			Name:  "keystore-path",
@@ -95,7 +95,7 @@ func StartMain() (*photon.API, error) {
 		},
 		cli.StringFlag{
 			Name:  "listen-address",
-			Usage: `"host:port" for the photon service to listen on.`,
+			Usage: `"host:port" for the atmosphere service to listen on.`,
 			Value: fmt.Sprintf("0.0.0.0:%d", params.InitialPort),
 		},
 		cli.StringFlag{
@@ -105,7 +105,7 @@ func StartMain() (*photon.API, error) {
 		},
 		ethutils.DirectoryFlag{
 			Name:  "datadir",
-			Usage: "Directory for storing photon data.",
+			Usage: "Directory for storing atmosphere data.",
 			Value: ethutils.DirectoryString{Value: params.DefaultDataDir()},
 		},
 		cli.StringFlag{
@@ -167,7 +167,7 @@ func StartMain() (*photon.API, error) {
 	}
 	app.Flags = append(app.Flags, debug.Flags...)
 	app.Action = mainCtx
-	app.Name = "photon"
+	app.Name = "atmosphere"
 	app.Version = Version
 	app.Before = func(ctx *cli.Context) error {
 		if err := debug.Setup(ctx); err != nil {
@@ -185,7 +185,7 @@ func StartMain() (*photon.API, error) {
 }
 
 func mainCtx(ctx *cli.Context) (err error) {
-	log.Info(fmt.Sprintf("Welcome to photon,version %s\n", ctx.App.Version))
+	log.Info(fmt.Sprintf("Welcome to atmosphere,version %s\n", ctx.App.Version))
 	log.Info(fmt.Sprintf("os.args=%q", os.Args))
 	var isFirstStartUp, hasConnectedChain bool
 	// load config
@@ -255,7 +255,7 @@ func mainCtx(ctx *cli.Context) (err error) {
 		client.Close()
 		return
 	}
-	service, err := photon.NewPhotonService(bcs, cfg.PrivateKey, transport, cfg, notify.NewNotifyHandler(), db)
+	service, err := atmosphere.NewPhotonService(bcs, cfg.PrivateKey, transport, cfg, notify.NewNotifyHandler(), db)
 	if err != nil {
 		db.CloseDB()
 		client.Close()
@@ -265,14 +265,14 @@ func mainCtx(ctx *cli.Context) (err error) {
 	if cfg.EnableMediationFee {
 		//do nothing.
 	} else {
-		service.SetFeePolicy(&photon.NoFeePolicy{})
+		service.SetFeePolicy(&atmosphere.NoFeePolicy{})
 	}
 	err = service.Start()
 	if err != nil {
 		service.Stop()
 		return
 	}
-	api = photon.NewPhotonAPI(service)
+	api = atmosphere.NewPhotonAPI(service)
 	regQuitHandler(api)
 	if params.MobileMode {
 		if cfg.APIHost == "0.0.0.0" {
@@ -321,7 +321,7 @@ func buildTransport(cfg *params.Config, bcs *rpc.BlockChainService) (transport n
 	}
 	return
 }
-func regQuitHandler(api *photon.API) {
+func regQuitHandler(api *atmosphere.API) {
 	go func() {
 		defer rpanic.PanicRecover("regQuitHandler")
 		quitSignal := make(chan os.Signal, 1)
@@ -368,7 +368,7 @@ func config(ctx *cli.Context) (config *params.Config, err error) {
 	}
 	dataDir := ctx.String("datadir")
 	if len(dataDir) == 0 {
-		dataDir = path.Join(utils.GetHomePath(), ".photon")
+		dataDir = path.Join(utils.GetHomePath(), ".atmosphere")
 	}
 	config.DataDir = dataDir
 	if !utils.Exists(config.DataDir) {
@@ -516,7 +516,7 @@ func verifyContractCode(bcs *rpc.BlockChainService) (err error) {
 		return
 	}
 	if !strings.HasPrefix(contractVersion, params.ContractVersionPrefix) {
-		err = fmt.Errorf("contract version on chain %s is incompatible with this photon version", contractVersion)
+		err = fmt.Errorf("contract version on chain %s is incompatible with this atmosphere version", contractVersion)
 	}
 	return
 }

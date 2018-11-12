@@ -1,4 +1,4 @@
-package photon
+package atmosphere
 
 import (
 	"crypto/ecdsa"
@@ -68,7 +68,7 @@ type ReceivedMediatedTrasnferListener func(msg *encoding.MediatedTransfer) (remo
 type SentMediatedTransferListener func(msg *encoding.MediatedTransfer) (remove bool)
 
 /*
-Service is a photon node
+Service is a atmosphere node
 most of Service's member is not thread safe, and should not visit outside the loop method.
 */
 type Service struct {
@@ -133,7 +133,7 @@ type Service struct {
 	ChanHistoryContractEventsDealComplete chan struct{}
 }
 
-//NewPhotonService create photon service
+//NewPhotonService create atmosphere service
 func NewPhotonService(chain *rpc.BlockChainService, privateKey *ecdsa.PrivateKey, transport network.Transporter, config *params.Config, notifyHandler *notify.Handler, db *models.ModelDB) (rs *Service, err error) {
 	rs = &Service{
 		NotifyHandler:                         notifyHandler,
@@ -187,7 +187,7 @@ func NewPhotonService(chain *rpc.BlockChainService, privateKey *ecdsa.PrivateKey
 		err = fmt.Errorf("another instance already running at %s", config.DataBasePath)
 		return
 	}
-	log.Info(fmt.Sprintf("create photon service registry=%s,node=%s", rs.Chain.GetRegistryAddress().String(), rs.NodeAddress.String()))
+	log.Info(fmt.Sprintf("create atmosphere service registry=%s,node=%s", rs.Chain.GetRegistryAddress().String(), rs.NodeAddress.String()))
 
 	rs.Token2TokenNetwork, err = rs.db.GetAllTokens()
 	if err != nil {
@@ -277,7 +277,7 @@ func (rs *Service) Start() (err error) {
 
 //Stop the node.
 func (rs *Service) Stop() {
-	log.Info("photon service stop...")
+	log.Info("atmosphere service stop...")
 	close(rs.quitChan)
 	rs.Protocol.StopAndWait()
 	rs.BlockChainEvents.Stop()
@@ -290,11 +290,11 @@ func (rs *Service) Stop() {
 	if err != nil {
 		log.Error(fmt.Sprintf("Unlock err %s", err))
 	}
-	log.Info("photon service stop ok...")
+	log.Info("atmosphere service stop ok...")
 }
 
 /*
-main loop of this photon nodes
+main loop of this atmosphere nodes
 process  events below:
 1. request from user
 2. event from blockchain
@@ -308,7 +308,7 @@ func (rs *Service) loop() {
 	var req *apiReq
 	var sentMessage *protocolMessage
 
-	defer rpanic.PanicRecover("photon service")
+	defer rpanic.PanicRecover("atmosphere service")
 	for {
 		select {
 		//message from other nodes
@@ -475,7 +475,7 @@ func (rs *Service) findChannelByIdentifier(channelIdentifier common.Hash) (*chan
 }
 
 /*
-Send `message` to `recipient` using the photon protocol.
+Send `message` to `recipient` using the atmosphere protocol.
 
        The protocol will take care of resending the message on a given
        interval until an Acknowledgment is received or a given number of
@@ -1491,7 +1491,7 @@ func (rs *Service) conditionQuit(eventName string) {
 }
 
 /*
-GetDb return photon's db
+GetDb return atmosphere's db
 */
 func (rs *Service) GetDb() *models.ModelDB {
 	return rs.db

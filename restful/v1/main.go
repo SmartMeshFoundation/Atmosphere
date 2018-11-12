@@ -5,7 +5,7 @@ import (
 
 	"fmt"
 
-	"github.com/SmartMeshFoundation/Atmosphere"
+	atmosphere "github.com/SmartMeshFoundation/Atmosphere"
 	"github.com/SmartMeshFoundation/Atmosphere/log"
 	"github.com/SmartMeshFoundation/Atmosphere/params"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
@@ -16,7 +16,7 @@ import (
 API is the interface of Photon network
 should be set before start restful server
 */
-var API *photon.API
+var API *atmosphere.API
 
 /*
 Config is the configuration of Photon network

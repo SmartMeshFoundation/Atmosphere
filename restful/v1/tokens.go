@@ -66,7 +66,7 @@ func TokenPartners(w rest.ResponseWriter, r *rest.Request) {
 }
 
 /*
-RegisterToken register a new token to the photon network.
+RegisterToken register a new token to the atmosphere network.
 this address must be a valid ERC20 token
 */
 func RegisterToken(w rest.ResponseWriter, r *rest.Request) {

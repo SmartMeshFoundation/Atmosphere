@@ -12,8 +12,8 @@ func init() {
 
 /*
 Start restful server
-PhotonAPI is the interface of photon network
-config is the configuration of photon network
+PhotonAPI is the interface of atmosphere network
+config is the configuration of atmosphere network
 */
 func Start(API *photon.API, config *params.Config) {
 	v1.API = API

@@ -75,7 +75,7 @@ MakeRoute Helper for creating a route.
         node_address : The node address.
         availableBalance  : The available capacity of the route.
         settleTimeout  : The settle_timeout of the route, as agreed in the netting contract.
-        revealTimeout  : The configure reveal_timeout of the photon node.
+        revealTimeout  : The configure reveal_timeout of the atmosphere node.
         channelIdentifier (address): The correspoding channel identifier.
 */
 func MakeRoute(nodeAddress common.Address, availableBalance *big.Int, settleTimeout /*UnitSettleTimeout*/ int, revealTimeout /*UnitRevealTimeout*/ int, closedBlock int64, channelIdentifier common.Hash) *route.State {

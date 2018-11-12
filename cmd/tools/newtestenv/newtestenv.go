@@ -60,7 +60,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "address",
-			Usage: "The ethereum address you would like photon to use and for which a keystore file exists in your local system.",
+			Usage: "The ethereum address you would like atmosphere to use and for which a keystore file exists in your local system.",
 		},
 		cli.StringFlag{
 			Name:  "keystore-path",

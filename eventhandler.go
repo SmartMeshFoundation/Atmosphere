@@ -1,4 +1,4 @@
-package photon
+package atmosphere
 
 import (
 	"fmt"
@@ -19,7 +19,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-//run inside loop of photon service
+//run inside loop of atmosphere service
 type stateMachineEventHandler struct {
 	photon *Service
 }
@@ -273,7 +273,7 @@ func (eh *stateMachineEventHandler) eventContractSendWithdraw(e2 *mediatedtransf
 	//if manager.Name != target.NameTargetTransition && manager.Name != mediator.NameMediatorTransition {
 	//	panic("EventWithdrawFailed can only comes from a target node or mediated node")
 	//}
-	//ch, err := eh.photon.findChannelByIdentifier(e2.ChannelIdentifier)
+	//ch, err := eh.atmosphere.findChannelByIdentifier(e2.ChannelIdentifier)
 	//if err != nil {
 	//	log.Error(fmt.Sprintf("payee's lock expired ,but cannot find channel %s, eh may happen long later restart after a stop", e2.ChannelIdentifier))
 	//	return
@@ -667,7 +667,7 @@ func (eh *stateMachineEventHandler) handleSecretRegisteredOnChain(st *mediatedtr
 
 func (eh *stateMachineEventHandler) handleBlockStateChange(st *transfer.BlockStateChange) error {
 	eh.dispatchToAllTasks(st)
-	//for _, cg := range eh.photon.Token2ChannelGraph {
+	//for _, cg := range eh.atmosphere.Token2ChannelGraph {
 	//	for _, c := range cg.ChannelIdentifier2Channel {
 	//		err := eh.ChannelStateTransition(c, st)
 	//		if err != nil {

@@ -124,7 +124,7 @@ type PhotonProtocol struct {
 	*/
 	ReceivedMessageChan chan *MessageToPhoton
 	/*
-		this is a synchronized chan,reading  process message result from photon
+		this is a synchronized chan,reading  process message result from atmosphere
 	*/
 	ReceivedMessageResultChan chan error
 	sendingQueueMap           map[string]chan *SentMessageState //write to this channel to send a message
@@ -487,8 +487,8 @@ func (p *PhotonProtocol) receiveInternal(data []byte) {
 		if messager.Cmd() == encoding.PingCmdID { //send ack
 			p.sendAck(signedMessager.GetSender(), p.CreateAck(echohash))
 		} else {
-			//send message to photon ,and wait result
-			p.log.Trace(fmt.Sprintf("protocol send message to photon... %s", signedMessager))
+			//send message to atmosphere ,and wait result
+			p.log.Trace(fmt.Sprintf("protocol send message to atmosphere... %s", signedMessager))
 			p.ReceivedMessageChan <- &MessageToPhoton{signedMessager, echohash}
 			select {
 			case err, ok = <-p.ReceivedMessageResultChan:
@@ -496,7 +496,7 @@ func (p *PhotonProtocol) receiveInternal(data []byte) {
 				ok = false
 				err = errors.New("protocol stoped")
 			}
-			p.log.Trace(fmt.Sprintf("protocol receive message response from photon ok=%v,err=%v", ok, err))
+			p.log.Trace(fmt.Sprintf("protocol receive message response from atmosphere ok=%v,err=%v", ok, err))
 			//only send the Ack if the message was handled without exceptions
 			if err == nil && ok {
 				ack := p.CreateAck(echohash)
@@ -505,7 +505,7 @@ func (p *PhotonProtocol) receiveInternal(data []byte) {
 					p.receivedMessageSaver.SaveAck(echohash, messager, ack.Pack())
 				}
 			} else {
-				p.log.Info(fmt.Sprintf("and photon report error %s, for Received Message %s", err, utils.StringInterface(signedMessager, 3)))
+				p.log.Info(fmt.Sprintf("and atmosphere report error %s, for Received Message %s", err, utils.StringInterface(signedMessager, 3)))
 			}
 		}
 	}
@@ -521,10 +521,10 @@ func (p *PhotonProtocol) StopAndWait() {
 	//what about the outgoing packets, maybe lost
 	p.Transport.Stop()
 
-	p.log.Info("photon protocol stop ok...")
+	p.log.Info("atmosphere protocol stop ok...")
 }
 
-// Start photon protocol
+// Start atmosphere protocol
 func (p *PhotonProtocol) Start() {
 	p.Transport.Start()
 }

@@ -12,7 +12,7 @@ func main() {
 	// 1. init log
 	cases.InitCaseLogger("./log/smoketest.log")
 
-	// 2. start photon nodes
+	// 2. start atmosphere nodes
 	StartPhotonNode("")
 
 	// 3. init PhotonEnvReader

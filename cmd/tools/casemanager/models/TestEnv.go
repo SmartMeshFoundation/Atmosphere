@@ -85,8 +85,8 @@ func NewTestEnv(configFilePath string) (env *TestEnv, err error) {
 	}
 	Logger = log.New(&logTee{logFile, os.Stderr}, "", log.LstdFlags|log.Lshortfile)
 	Logger.Println("Start to prepare env for " + env.CaseName + "...")
-	env.Main = c.RdString("COMMON", "main", "photon")
-	env.DataDir = c.RdString("COMMON", "data_dir", ".photon")
+	env.Main = c.RdString("COMMON", "main", "atmosphere")
+	env.DataDir = c.RdString("COMMON", "data_dir", ".atmosphere")
 	env.KeystorePath = c.RdString("COMMON", "keystore_path", "../../../testdata/casemanager-keystore")
 	env.PasswordFile = c.RdString("COMMON", "password_file", "../../../testdata/casemanager-keystore/pass")
 	env.XMPPServer = c.RdString("COMMON", "xmpp-server", "")
@@ -428,21 +428,21 @@ func approveAccountIfNeeded(token *contracts.Token, auth *bind.TransactOpts, tok
 	approveMap[key] = approveAmt.Int64()
 }
 
-// KillAllPhotonNodes kill all photon node
+// KillAllPhotonNodes kill all atmosphere node
 func (env *TestEnv) KillAllPhotonNodes() {
 	var pstr2 []string
 	//kill the old process
 	if runtime.GOOS == "windows" {
 		pstr2 = append(pstr2, "-F")
 		pstr2 = append(pstr2, "-IM")
-		pstr2 = append(pstr2, "photon*")
+		pstr2 = append(pstr2, "atmosphere*")
 		ExecShell("taskkill", pstr2, "./log/killall.log", true)
 	} else {
 		pstr2 = append(pstr2, "-9")
-		pstr2 = append(pstr2, "photon")
+		pstr2 = append(pstr2, "atmosphere")
 		ExecShell("killall", pstr2, "./log/killall.log", true)
 	}
-	Logger.Println("Kill all photon nodes SUCCESS")
+	Logger.Println("Kill all atmosphere nodes SUCCESS")
 }
 
 // ClearHistoryData :
@@ -459,7 +459,7 @@ func (env *TestEnv) ClearHistoryData() {
 		}
 		name := fi.Name()
 
-		if name == ".photon" {
+		if name == ".atmosphere" {
 			err := os.RemoveAll(path)
 			if err != nil {
 				fmt.Println("delet dir error:", err)

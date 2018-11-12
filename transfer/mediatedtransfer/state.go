@@ -178,7 +178,7 @@ type MediationPairState struct {
 //StatePayeePending Initial state.
 const StatePayeePending = "payee_pending"
 
-//StatePayeeSecretRevealed The payee is following the photon protocol and has sent a SecretReveal.
+//StatePayeeSecretRevealed The payee is following the atmosphere protocol and has sent a SecretReveal.
 //#nosec
 const StatePayeeSecretRevealed = "payee_secret_revealed"
 

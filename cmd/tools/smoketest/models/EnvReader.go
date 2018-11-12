@@ -11,7 +11,7 @@ import (
 	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
 )
 
-// PhotonEnvReader : save all data about photon nodes and refresh in time
+// PhotonEnvReader : save all data about atmosphere nodes and refresh in time
 type PhotonEnvReader struct {
 	RegisterContractAddress string        `json:"register_contract_address"`
 	PhotonNodes             []*PhotonNode `json:"photon_nodes"` // 节点列表
@@ -23,7 +23,7 @@ func NewPhotonEnvReader(hosts []string) *PhotonEnvReader {
 	var env = new(PhotonEnvReader)
 	// init hosts
 	if hosts == nil || len(hosts) == 0 {
-		panic("At least need one photon node")
+		panic("At least need one atmosphere node")
 	}
 	for _, host := range hosts {
 		env.PhotonNodes = append(env.PhotonNodes, &PhotonNode{
@@ -34,7 +34,7 @@ func NewPhotonEnvReader(hosts []string) *PhotonEnvReader {
 	return env
 }
 
-// Refresh : refresh all data by photon query api
+// Refresh : refresh all data by atmosphere query api
 func (env *PhotonEnvReader) Refresh() {
 	// 1. refresh node address
 	env.RefreshNodes()
@@ -172,7 +172,7 @@ func (env *PhotonEnvReader) SaveToFile(filepath string) {
 	log.Println("Write env data to " + filepath + " done")
 }
 
-// RandomNode : get a random photon node
+// RandomNode : get a random atmosphere node
 func (env *PhotonEnvReader) RandomNode() *PhotonNode {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	num := len(env.PhotonNodes)
@@ -192,7 +192,7 @@ func (env *PhotonEnvReader) RandomToken() *Token {
 	return env.Tokens[r.Intn(num)]
 }
 
-// GetChannelsOfNode : get all channels of a photon node
+// GetChannelsOfNode : get all channels of a atmosphere node
 func (env *PhotonEnvReader) GetChannelsOfNode(nodeAccountAddress string) (channels []Channel) {
 	for _, token := range env.Tokens {
 		for _, channel := range token.Channels {
@@ -214,7 +214,7 @@ func (env *PhotonEnvReader) GetChannelsOfNode(nodeAccountAddress string) (channe
 	return channels
 }
 
-// GetChannelsOfNodeByState get all channels of a photon node by channel state
+// GetChannelsOfNodeByState get all channels of a atmosphere node by channel state
 func (env *PhotonEnvReader) GetChannelsOfNodeByState(nodeAccountAddress string, state int) (channels []Channel) {
 	all := env.GetChannelsOfNode(nodeAccountAddress)
 	for _, channel := range all {
