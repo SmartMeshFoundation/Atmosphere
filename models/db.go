@@ -53,7 +53,7 @@ func OpenDb(dbPath string) (model *ModelDB, err error) {
 	model = newModelDB()
 	needCreateDb := !common.FileExist(dbPath)
 	var ver int
-	model.db, err = storm.Open(dbPath, storm.BoltOptions(os.ModePerm, &bolt.Options{Timeout: time.Second}), storm.Codec(gobcodec.Codec))
+	model.db, err = storm.Open(dbPath, storm.BoltOptions(os.ModePerm, &bolt.Options{Timeout: 1 * time.Second}), storm.Codec(gobcodec.Codec))
 	if err != nil {
 		err = fmt.Errorf("cannot create or open db:%s,makesure you have write permission err:%v", dbPath, err)
 		log.Crit(err.Error())

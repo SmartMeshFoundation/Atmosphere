@@ -22,8 +22,11 @@ import (
 	"crypto/ecdsa"
 
 	"github.com/SmartMeshFoundation/Atmosphere/channel/channeltype"
+	"github.com/SmartMeshFoundation/Atmosphere/dto"
 	"github.com/SmartMeshFoundation/Atmosphere/log"
 	"github.com/SmartMeshFoundation/Atmosphere/models"
+	"github.com/SmartMeshFoundation/Atmosphere/network"
+	"github.com/SmartMeshFoundation/Atmosphere/pfsproxy"
 	"github.com/SmartMeshFoundation/Atmosphere/rerr"
 	"github.com/SmartMeshFoundation/Atmosphere/transfer"
 	"github.com/SmartMeshFoundation/Atmosphere/transfer/mediatedtransfer"
@@ -105,13 +108,13 @@ func (r *API) TokenAddressIfTokenRegistered(tokenAddress common.Address) (mgrAdd
 RegisterToken Will register the token at `token_address` with atmosphere. If it's already
     registered, will throw an exception.
 */
-func (r *API) RegisterToken(tokenAddress common.Address) (mgrAddr common.Address, err error) {
+func (r *API) RegisterToken(tokenAddress common.Address) (tokenNetworkAddress common.Address, err error) {
 	if r.Photon.Chain.RegistryProxy == nil {
 		err = errEthConnectionNotReady
 		return
 	}
-	mgrAddr, err = r.Photon.Chain.RegistryProxy.TokenNetworkByToken(tokenAddress)
-	if err == nil && mgrAddr != utils.EmptyAddress {
+	tokenNetworkAddress, err = r.Photon.Chain.RegistryProxy.TokenNetworkByToken(tokenAddress)
+	if err == nil && tokenNetworkAddress != utils.EmptyAddress {
 		err = errors.New("TokenNetworkAddres already registered")
 		return
 	}
@@ -1175,4 +1178,74 @@ func (r *API) BalanceProofForPFS(channelIdentifier common.Hash) (proof *ProofFor
 	dataToSign := buf.Bytes()
 	proof.Signature, err = utils.SignData(r.Photon.PrivateKey, dataToSign)
 	return
+}
+
+// NotifyNetworkDown :
+func (r *API) NotifyNetworkDown() error {
+	// smc client
+	client := r.Photon.Chain.Client
+	if client.IsConnected() {
+		//r.Photon.BlockChainEvents.Stop()
+		client.Client.Close()
+	}
+
+	// xmpp client
+	if t, ok := r.Photon.Protocol.Transport.(*network.MixTransport); ok {
+		t.Reconnect()
+	}
+	return nil
+}
+
+// GetFeePolicy :
+func (r *API) GetFeePolicy() (fp *models.FeePolicy, err error) {
+	feeModule, ok := r.Photon.FeePolicy.(*FeeModule)
+	if !ok {
+		return
+	}
+	return feeModule.feePolicy, nil
+}
+
+// SetFeePolicy :
+func (r *API) SetFeePolicy(fp *models.FeePolicy) error {
+	feeModule, ok := r.Photon.FeePolicy.(*FeeModule)
+	if !ok {
+		return errors.New("atmosphere start without param '--fee', can not set fee policy")
+	}
+	return feeModule.SetFeePolicy(fp)
+}
+
+// FindPath :
+func (r *API) FindPath(targetAddress, tokenAddress common.Address, amount *big.Int) (routes []pfsproxy.FindPathResponse, err error) {
+	if r.Photon.PfsProxy == nil {
+		err = errors.New("atmosphere start without param '--pfs', can not calculate total fee")
+		return
+	}
+	routes, err = r.Photon.PfsProxy.FindPath(r.Photon.NodeAddress, targetAddress, tokenAddress, amount)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// GetAllFeeChargeRecord :
+func (r *API) GetAllFeeChargeRecord() (resp *dto.APIResponse) {
+	type responce struct {
+		TotalFee map[common.Address]*big.Int `json:"total_fee"`
+		Details  []*models.FeeChargeRecord   `json:"details"`
+	}
+	var data responce
+	var err error
+	data.Details, err = r.Photon.db.GetAllFeeChargeRecord()
+	if err != nil {
+		return dto.NewExceptionAPIResponse(err)
+	}
+	data.TotalFee = make(map[common.Address]*big.Int)
+	for _, record := range data.Details {
+		totalFee := data.TotalFee[record.TokenAddress]
+		if totalFee == nil {
+			totalFee = big.NewInt(0)
+		}
+		data.TotalFee[record.TokenAddress] = totalFee.Add(totalFee, record.Fee)
+	}
+	return dto.NewSuccessAPIResponse(data)
 }

@@ -5,8 +5,8 @@ import (
 
 	"time"
 
-	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/casemanager/models"
-	"github.com/SmartMeshFoundation/Atmosphere/params"
+	"github.com/SmartMeshFoundation/Photon/cmd/tools/casemanager/models"
+	"github.com/SmartMeshFoundation/Photon/params"
 )
 
 // CrashCaseSend04 场景四：EventSendSecretRequestAfter

@@ -10,7 +10,7 @@ import (
 
 	"fmt"
 
-	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/smoketest/models"
+	"github.com/SmartMeshFoundation/Photon/cmd/tools/smoketest/models"
 )
 
 // TransferPayload API  http body

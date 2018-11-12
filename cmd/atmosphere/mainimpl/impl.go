@@ -162,7 +162,11 @@ func StartMain() (*atmosphere.API, error) {
 		},
 		cli.StringFlag{
 			Name:  "pfs",
-			Usage: "pathfinder service host",
+			Usage: "pathfinder service host,example http://127.0.0.1:9000",
+		},
+		cli.BoolFlag{
+			Name:  "enable-fork-confirm",
+			Usage: "enable fork confirm when receive events from chain",
 		},
 	}
 	app.Flags = append(app.Flags, debug.Flags...)
@@ -261,11 +265,6 @@ func mainCtx(ctx *cli.Context) (err error) {
 		client.Close()
 		transport.Stop()
 		return
-	}
-	if cfg.EnableMediationFee {
-		//do nothing.
-	} else {
-		service.SetFeePolicy(&atmosphere.NoFeePolicy{})
 	}
 	err = service.Start()
 	if err != nil {
@@ -430,8 +429,14 @@ func config(ctx *cli.Context) (config *params.Config, err error) {
 		}
 	}
 	config.PfsHost = ctx.String("pfs")
-	if ctx.Bool("disable-fork-confirm") {
-		params.EnableForkConfirm = false
+	if len(config.PfsHost) > 0 && config.NetworkMode != params.MixUDPMatrix {
+		err = fmt.Errorf("atmosphere start with pfs %s, but not use matrix, exit", config.PfsHost)
+		return
+	}
+
+	if ctx.Bool("enable-fork-confirm") {
+		log.Info("fork-confirm enable...")
+		params.EnableForkConfirm = true
 	}
 	return
 }

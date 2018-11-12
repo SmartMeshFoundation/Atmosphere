@@ -6,18 +6,20 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/casemanager/models"
+	"github.com/SmartMeshFoundation/Photon/cmd/tools/casemanager/models"
 )
 
 // CaseManager include env and cases
 type CaseManager struct {
 	Cases           map[string]reflect.Value
 	FailedCaseNames []string
+	IsAutoRun       bool
 }
 
 // NewCaseManager constructor
-func NewCaseManager() (caseManager *CaseManager) {
+func NewCaseManager(isAutoRun bool) (caseManager *CaseManager) {
 	caseManager = new(CaseManager)
+	caseManager.IsAutoRun = isAutoRun
 	caseManager.Cases = make(map[string]reflect.Value)
 	// use reflect to load all cases
 	fmt.Println("load cases...")
@@ -109,4 +111,10 @@ func (c *CaseManager) caseFailWithWrongChannelData(caseName string, channelName 
 	models.Logger.Println(channelName + " data wrong !!!")
 	models.Logger.Println(caseName + " END ====> FAILED")
 	return fmt.Errorf("Case [%s] FAILED", caseName)
+}
+
+func (c *CaseManager) logSeparatorLine(s string) {
+	models.Logger.Println("===============================================>")
+	models.Logger.Println(s)
+	models.Logger.Println("===============================================>")
 }

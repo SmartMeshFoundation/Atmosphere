@@ -17,11 +17,11 @@ import (
 
 	"time"
 
-	"github.com/SmartMeshFoundation/Atmosphere/accounts"
-	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/newtestenv/createchannel"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts/test/tokens/tokenerc223approve"
-	"github.com/SmartMeshFoundation/Atmosphere/utils"
+	"github.com/SmartMeshFoundation/Photon/accounts"
+	"github.com/SmartMeshFoundation/Photon/cmd/tools/newtestenv/createchannel"
+	"github.com/SmartMeshFoundation/Photon/network/rpc/contracts"
+	"github.com/SmartMeshFoundation/Photon/network/rpc/contracts/test/tokens/tokenerc223approve"
+	"github.com/SmartMeshFoundation/Photon/utils"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"

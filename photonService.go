@@ -157,7 +157,6 @@ func NewPhotonService(chain *rpc.BlockChainService, privateKey *ecdsa.PrivateKey
 		RevealSecretListenerMap:               make(map[common.Hash]RevealSecretListener),
 		ReceivedMediatedTrasnferListenerMap:   make(map[*ReceivedMediatedTrasnferListener]bool),
 		SentMediatedTransferListenerMap:       make(map[*SentMediatedTransferListener]bool),
-		FeePolicy:                             &ConstantFeePolicy{},
 		HealthCheckMap:                        make(map[common.Address]bool),
 		quitChan:                              make(chan struct{}),
 		isStarting:                            true,
@@ -200,6 +199,15 @@ func NewPhotonService(chain *rpc.BlockChainService, privateKey *ecdsa.PrivateKey
 	// pathfinder
 	if config.PfsHost != "" {
 		rs.PfsProxy = pfsproxy.NewPfsProxy(config.PfsHost, rs.PrivateKey)
+	}
+	// fee module
+	if config.EnableMediationFee {
+		rs.FeePolicy, err = NewFeeModule(db, rs.PfsProxy)
+		if err != nil {
+			return
+		}
+	} else {
+		rs.FeePolicy = &NoFeePolicy{}
 	}
 	return rs, nil
 }
@@ -651,6 +659,7 @@ func (rs *Service) registerChannel(tokenNetworkAddress common.Address, partnerAd
 		log.Error(fmt.Sprintf("receive new channel %s-%s,but cannot create tokennetwork err %s",
 			utils.APex2(tokenNetworkAddress), utils.APex2(partnerAddress), err,
 		))
+		return
 	}
 	tokenAddress := rs.TokenNetwork2Token[tokenNetworkAddress]
 	if rs.getChannel(tokenAddress, partnerAddress) != nil {
@@ -780,17 +789,18 @@ Calls:
 func (rs *Service) startMediatedTransferInternal(tokenAddress, target common.Address, amount *big.Int, fee *big.Int, lockSecretHash common.Hash, expiration int64, secret common.Hash) (result *utils.AsyncResult, stateManager *transfer.StateManager) {
 	var availableRoutes []*route.State
 	var err error
+	targetAmount := new(big.Int).Sub(amount, fee)
+	result = utils.NewAsyncResult()
 	if rs.PfsProxy != nil {
-		availableRoutes, err = rs.getBestRoutesFromPfs(rs.NodeAddress, target, tokenAddress, amount)
+		availableRoutes, err = rs.getBestRoutesFromPfs(rs.NodeAddress, target, tokenAddress, targetAmount)
 		if err != nil {
 			result.Result <- errors.New("get route from pathfinder failed")
 			return
 		}
 	} else {
 		g := rs.getToken2ChannelGraph(tokenAddress)
-		availableRoutes = g.GetBestRoutes(rs.Protocol, rs.NodeAddress, target, amount, graph.EmptyExlude, rs)
+		availableRoutes = g.GetBestRoutes(rs.Protocol, rs.NodeAddress, target, amount, targetAmount, graph.EmptyExlude, rs)
 	}
-	result = utils.NewAsyncResult()
 	if len(availableRoutes) <= 0 {
 		result.Result <- errors.New("no available route")
 		return
@@ -905,6 +915,7 @@ func (rs *Service) mediateMediatedTransfer(msg *encoding.MediatedTransfer, ch *c
 		// do nothing.
 		return
 	}
+	targetAmount := new(big.Int).Sub(msg.PaymentAmount, msg.Fee)
 	amount := msg.PaymentAmount
 	targetAddr := msg.Target
 	fromChannel := ch
@@ -928,13 +939,13 @@ func (rs *Service) mediateMediatedTransfer(msg *encoding.MediatedTransfer, ch *c
 		var avaiableRoutes []*route.State
 		if rs.PfsProxy != nil {
 			var err error
-			avaiableRoutes, err = rs.getBestRoutesFromPfs(rs.NodeAddress, targetAddr, tokenAddress, amount)
+			avaiableRoutes, err = rs.getBestRoutesFromPfs(rs.NodeAddress, targetAddr, tokenAddress, targetAmount)
 			if err != nil {
 				log.Error(fmt.Sprintf("get route from pathfinder failed, err = %s", err.Error()))
 			}
 		} else {
 			g := rs.getToken2ChannelGraph(ch.TokenAddress) //must exist
-			avaiableRoutes = g.GetBestRoutes(rs.Protocol, rs.NodeAddress, targetAddr, amount, exclude, rs)
+			avaiableRoutes = g.GetBestRoutes(rs.Protocol, rs.NodeAddress, targetAddr, amount, targetAmount, exclude, rs)
 		}
 		routesState := route.NewRoutesState(avaiableRoutes)
 		blockNumber := rs.GetBlockNumber()
@@ -1474,11 +1485,6 @@ func (rs *Service) GetNodeChargeFee(nodeAddress, tokenAddress common.Address, am
 	return rs.FeePolicy.GetNodeChargeFee(nodeAddress, tokenAddress, amount)
 }
 
-//SetFeePolicy set fee policy
-func (rs *Service) SetFeePolicy(feePolicy fee.Charger) {
-	rs.FeePolicy = feePolicy
-}
-
 /*
 for debug only,quit if eventName exactly match
 */
@@ -1509,6 +1515,13 @@ func (rs *Service) handleEthRPCConnectionOK() {
 	// If rpc connection fails in public chain, once reconnecting, we should reinitialize registry,
 	// otherwise we can do things like token registry.
 	rs.Chain.Registry(rs.Config.RegistryAddress, true)
+	// 重连时上传手续费设置给PFS
+	if fm, ok := rs.FeePolicy.(*FeeModule); ok {
+		err := fm.SubmitFeePolicyToPFS()
+		if err != nil {
+			log.Error(fmt.Sprintf("set fee policy to pfs err =%s", err.Error()))
+		}
+	}
 }
 
 //all user's request
@@ -1660,6 +1673,7 @@ func (rs *Service) getBestRoutesFromPfs(peerFrom, peerTo, token common.Address, 
 		r := route.NewState(ch)
 		r.Fee = rs.FeePolicy.GetNodeChargeFee(partnerAddress, token, amount)
 		r.TotalFee = path.Fee
+		routes = append(routes, r)
 	}
 	return
 }

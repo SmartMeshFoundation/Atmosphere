@@ -4,8 +4,8 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/SmartMeshFoundation/Atmosphere/transfer/mtree"
-	"github.com/SmartMeshFoundation/Atmosphere/utils"
+	"github.com/SmartMeshFoundation/Photon/transfer/mtree"
+	"github.com/SmartMeshFoundation/Photon/utils"
 )
 
 // TestChannelSettleRight : 正确调用测试

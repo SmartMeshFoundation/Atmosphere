@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/smoketest/models"
-	"github.com/SmartMeshFoundation/Atmosphere/utils"
+	"github.com/SmartMeshFoundation/Photon/cmd/tools/smoketest/models"
+	"github.com/SmartMeshFoundation/Photon/utils"
 )
 
 // RegisterSecretPayload :

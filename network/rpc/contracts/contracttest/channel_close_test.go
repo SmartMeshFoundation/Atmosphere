@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/SmartMeshFoundation/Atmosphere/utils"
+	"github.com/SmartMeshFoundation/Photon/utils"
 )
 
 // TestChannelCloseRight : 正确调用测试

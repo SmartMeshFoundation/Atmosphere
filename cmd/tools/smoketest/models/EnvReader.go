@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
+	"github.com/SmartMeshFoundation/Photon/network/rpc/contracts"
 )
 
 // PhotonEnvReader : save all data about atmosphere nodes and refresh in time

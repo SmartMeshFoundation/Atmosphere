@@ -5,8 +5,8 @@ import (
 
 	"fmt"
 
-	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/casemanager/models"
-	"github.com/SmartMeshFoundation/Atmosphere/utils"
+	"github.com/SmartMeshFoundation/Photon/cmd/tools/casemanager/models"
+	"github.com/SmartMeshFoundation/Photon/utils"
 )
 
 // CaseEthNonce :

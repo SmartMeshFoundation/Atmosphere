@@ -5,7 +5,7 @@ import (
 
 	"fmt"
 
-	atmosphere "github.com/SmartMeshFoundation/Atmosphere"
+	"github.com/SmartMeshFoundation/Atmosphere"
 	"github.com/SmartMeshFoundation/Atmosphere/log"
 	"github.com/SmartMeshFoundation/Atmosphere/params"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
@@ -80,7 +80,11 @@ func Start() {
 		/*
 			utils
 		*/
+		rest.Get("/api/1/path/:target_address/:token/:amount", FindPath),
 		rest.Get("/api/1/secret", GetRandomSecret), // api to provide random secret and lockSecretHash pair
+		rest.Get("/api/1/fee_policy", GetFeePolicy),
+		rest.Post("/api/1/fee_policy", SetFeePolicy),
+		rest.Get("/api/1/fee", GetAllFeeChargeRecord),
 
 		/*
 			test
@@ -122,6 +126,7 @@ func Start() {
 		rest.Get("/api/1/debug/ethbalance/:addr", EthBalance),
 		rest.Get("/api/1/debug/ethstatus", EthereumStatus),
 		rest.Get("/api/1/debug/force-unlock/:channel/:locksecrethash/:secrethash", ForceUnlock),
+		rest.Post("/api/1/debug/notify_network_down", NotifyNetworkDown), // notify atmosphere network down
 		rest.Get("/api/1/debug/shutdown", func(writer rest.ResponseWriter, request *rest.Request) {
 			API.Photon.Stop()
 			utils.SystemExit(0)

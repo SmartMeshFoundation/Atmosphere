@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SmartMeshFoundation/Atmosphere/internal/debug"
+	"github.com/SmartMeshFoundation/Photon/internal/debug"
 
-	"github.com/SmartMeshFoundation/Atmosphere/log"
+	"github.com/SmartMeshFoundation/Photon/log"
 	"gopkg.in/urfave/cli.v1"
 )
 

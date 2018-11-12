@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/SmartMeshFoundation/Atmosphere/utils"
+	"github.com/SmartMeshFoundation/Photon/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
 

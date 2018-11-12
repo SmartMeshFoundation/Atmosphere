@@ -70,7 +70,7 @@ type Events struct {
 	rpcModuleDependency RPCModuleDependency
 	client              *helper.SafeEthClient
 	pollPeriod          time.Duration          // 轮询周期,必须与公链出块间隔一致
-	stopped             bool                   // has stopped?
+	stopChan            chan int               // has stopped?
 	txDone              map[common.Hash]uint64 // 该map记录最近30块内处理的events流水,用于事件去重
 }
 
@@ -94,7 +94,10 @@ func NewBlockChainEvents(client *helper.SafeEthClient, rpcModuleDependency RPCMo
 
 //Stop event listenging
 func (be *Events) Stop() {
-	be.stopped = true
+	be.pollPeriod = 0
+	if be.stopChan != nil {
+		close(be.stopChan)
+	}
 	log.Info("Events stop ok...")
 }
 
@@ -121,7 +124,6 @@ Start listening events send to  channel can duplicate but cannot lose.
 func (be *Events) Start(LastBlockNumber int64) {
 	log.Info(fmt.Sprintf("get state change since %d", LastBlockNumber))
 	be.lastBlockNumber = LastBlockNumber
-	be.stopped = false
 	/*
 		1. start alarm task
 	*/
@@ -130,17 +132,18 @@ func (be *Events) Start(LastBlockNumber int64) {
 
 func (be *Events) startAlarmTask() {
 	log.Trace(fmt.Sprintf("start getting lasted block number from blocknubmer=%d", be.lastBlockNumber))
+	startUpBlockNumber := be.lastBlockNumber
 	currentBlock := be.lastBlockNumber
+	logPeriod := int64(1)
+	retryTime := 0
+	be.stopChan = make(chan int)
 	for {
 		//get the lastest number imediatelly
-		if be.stopped {
-			log.Info(fmt.Sprintf("AlarmTask quit complete"))
-			return
-		}
 		if be.pollPeriod == 0 {
 			// first time
 			if params.ChainID.Int64() == params.TestPrivateChainID {
 				be.pollPeriod = params.DefaultEthRPCPollPeriodForTest
+				logPeriod = 10
 			} else {
 				be.pollPeriod = params.DefaultEthRPCPollPeriod
 			}
@@ -150,7 +153,8 @@ func (be *Events) startAlarmTask() {
 		if err != nil {
 			log.Error(fmt.Sprintf("HeaderByNumber err=%s", err))
 			cancelFunc()
-			if !be.stopped {
+			if be.stopChan != nil {
+				be.pollPeriod = 0
 				go be.client.RecoverDisconnect()
 			}
 			return
@@ -158,13 +162,24 @@ func (be *Events) startAlarmTask() {
 		cancelFunc()
 		lastedBlock := h.Number.Int64()
 		if currentBlock == lastedBlock {
-			time.Sleep(500 * time.Millisecond)
+			if startUpBlockNumber == lastedBlock {
+				// 当启动时获取不到新块,也需要通知photonService,否则会导致api无法启动
+				log.Warn(fmt.Sprintf("atmosphere start with blockNumber %d,but lastedBlockNumber on chain also %d", startUpBlockNumber, lastedBlock))
+				be.StateChangeChannel <- &transfer.BlockStateChange{BlockNumber: currentBlock}
+				startUpBlockNumber = 0
+			}
+			time.Sleep(be.pollPeriod / 2)
+			retryTime++
+			if retryTime > 10 {
+				log.Warn(fmt.Sprintf("get same block number %d from chain %d times,maybe something wrong with smc ...", lastedBlock, retryTime))
+			}
 			continue
 		}
+		retryTime = 0
 		if currentBlock != -1 && lastedBlock != currentBlock+1 {
 			log.Warn(fmt.Sprintf("AlarmTask missed %d blocks", lastedBlock-currentBlock-1))
 		}
-		if lastedBlock%10 == 0 {
+		if lastedBlock%logPeriod == 0 {
 			log.Trace(fmt.Sprintf("new block :%d", lastedBlock))
 		}
 
@@ -176,9 +191,6 @@ func (be *Events) startAlarmTask() {
 		stateChanges, err := be.queryAllStateChange(fromBlockNumber, lastedBlock)
 		if err != nil {
 			log.Error(fmt.Sprintf("queryAllStateChange err=%s", err))
-			if be.stopped {
-				return
-			}
 			// 如果这里出现err,不能继续处理该blocknumber,否则会丢事件,直接从该块重新处理即可
 			continue
 		}
@@ -204,7 +216,14 @@ func (be *Events) startAlarmTask() {
 			}
 		}
 		// wait to next time
-		time.Sleep(be.pollPeriod)
+		//time.Sleep(be.pollPeriod)
+		select {
+		case <-time.After(be.pollPeriod):
+		case <-be.stopChan:
+			be.stopChan = nil
+			log.Info(fmt.Sprintf("AlarmTask quit complete"))
+			return
+		}
 	}
 }
 
@@ -279,8 +298,15 @@ func (be *Events) parseLogsToEvents(logs []types.Log) (stateChanges []mediatedtr
 			log.Warn(fmt.Sprintf("event tx=%s happened at %d, but now happend at %d ", l.TxHash.String(), doneBlockNumber, l.BlockNumber))
 		}
 
-		// 事件延迟确认
+		// open,deposit,withdraw事件延迟确认,开关默认关闭,方便测试
 		if params.EnableForkConfirm && needConfirm(eventName) {
+			if be.lastBlockNumber-int64(l.BlockNumber) < params.ForkConfirmNumber {
+				continue
+			}
+			log.Info(fmt.Sprintf("event %s tx=%s happened at %d, confirmed at %d", eventName, l.TxHash.String(), l.BlockNumber, be.lastBlockNumber))
+		}
+		// registry secret事件延迟确认,否则在出现恶意分叉的情况下,中间节点有损失资金的风险
+		if eventName == params.NameSecretRevealed {
 			if be.lastBlockNumber-int64(l.BlockNumber) < params.ForkConfirmNumber {
 				continue
 			}

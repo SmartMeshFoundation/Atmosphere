@@ -9,9 +9,9 @@ import (
 
 	"math/big"
 
-	"github.com/SmartMeshFoundation/Atmosphere/accounts"
-	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/smoketest/models"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts/test/tokens/tokenerc223approve"
+	"github.com/SmartMeshFoundation/Photon/accounts"
+	"github.com/SmartMeshFoundation/Photon/cmd/tools/smoketest/models"
+	"github.com/SmartMeshFoundation/Photon/network/rpc/contracts/test/tokens/tokenerc223approve"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"

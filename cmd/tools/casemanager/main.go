@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/casemanager/cases"
+	"github.com/SmartMeshFoundation/Photon/cmd/tools/casemanager/cases"
 	"github.com/urfave/cli"
 )
 
@@ -17,7 +17,7 @@ func main() {
 			Name:  "caselist",
 			Usage: "list all cases",
 			Action: func(*cli.Context) error {
-				cases.NewCaseManager()
+				cases.NewCaseManager(false)
 				return nil
 			},
 		},
@@ -31,6 +31,10 @@ func main() {
 			Name:  "skip",
 			Usage: "true to skip failed cases,default false",
 			Value: "false",
+		},
+		cli.BoolFlag{
+			Name:  "auto",
+			Usage: "true if auto run",
 		},
 	}
 	app.Action = Main
@@ -48,8 +52,8 @@ func Main(ctx *cli.Context) (err error) {
 	fmt.Println(caseName)
 	if caseName != "" {
 		// load all cases
-		caseManager := cases.NewCaseManager()
-		fmt.Println("Start Crash Test...")
+		caseManager := cases.NewCaseManager(ctx.Bool("auto"))
+		fmt.Println("Start Casemanager Test...")
 		// run case
 		if caseName == "all" {
 			caseManager.RunAll(ctx.String("skip"))

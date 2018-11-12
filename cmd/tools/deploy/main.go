@@ -2,9 +2,6 @@ package main
 
 import (
 	"log"
-	"math/big"
-
-	"github.com/SmartMeshFoundation/Atmosphere/contracts/test/tokens/tokenether"
 
 	"context"
 
@@ -14,9 +11,9 @@ import (
 
 	"crypto/ecdsa"
 
-	"github.com/SmartMeshFoundation/Atmosphere/accounts"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
-	"github.com/SmartMeshFoundation/Atmosphere/params"
+	"github.com/SmartMeshFoundation/Photon/accounts"
+	"github.com/SmartMeshFoundation/Photon/network/rpc/contracts"
+	"github.com/SmartMeshFoundation/Photon/params"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethutils "github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -75,15 +72,6 @@ func mainctx(ctx *cli.Context) error {
 }
 func deployContract(key *ecdsa.PrivateKey, conn *ethclient.Client) {
 	auth := bind.NewKeyedTransactor(key)
-	auth.Value = big.NewInt(5000000000)
-	tokenAddr, tx, _, err := tokenether.DeployHumanEtherToken(auth, conn, "SMT")
-	fmt.Printf("tokenAddr=%s", tokenAddr.String())
-	_, err = bind.WaitDeployed(context.Background(), conn, tx)
-	if err != nil {
-		log.Fatalf("failed to deploy contact when mining :%v", err)
-	}
-	fmt.Printf("Deploy SMT complete...\n")
-	return
 	//Deploy Secret Registry
 	secretRegistryAddress, tx, _, err := contracts.DeploySecretRegistry(auth, conn)
 	if err != nil {

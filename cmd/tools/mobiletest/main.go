@@ -7,9 +7,9 @@ import (
 
 	"time"
 
-	"github.com/SmartMeshFoundation/Atmosphere/log"
-	"github.com/SmartMeshFoundation/Atmosphere/mobile"
-	"github.com/SmartMeshFoundation/Atmosphere/params"
+	"github.com/SmartMeshFoundation/Photon/log"
+	"github.com/SmartMeshFoundation/Photon/mobile"
+	"github.com/SmartMeshFoundation/Photon/params"
 	ethutils "github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/urfave/cli"
 )

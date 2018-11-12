@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/smoketest/models"
+	"github.com/SmartMeshFoundation/Photon/cmd/tools/smoketest/models"
 )
 
 // Connecting2TokenNetworkTest : test case for connect token network

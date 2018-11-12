@@ -67,10 +67,15 @@ const UDPMaxMessageSize = 1200
 //DefaultXMPPServer xmpp server
 const DefaultXMPPServer = "193.112.248.133:5222"
 
+//TestLogServer only for test, enabled if --debug flag is set
+var TestLogServer = "http://transport01.smartmesh.cn:8008"
+
+//var TestLogServer = "http://127.0.0.1:5000"
+
 //DefaultTestXMPPServer xmpp server for test only
 const DefaultTestXMPPServer = "193.112.248.133:5222" //"182.254.155.208:5222"
 //ContractSignaturePrefix for EIP191 https://github.com/ethereum/EIPs/blob/master/EIPS/eip-191.md
-var ContractSignaturePrefix = []byte("\x19Spectrum Signed Message:\n")
+var ContractSignaturePrefix = []byte("\x19Ethereum Signed Message:\n")
 
 const (
 	//ContractBalanceProofMessageLength balance proof  length
@@ -138,9 +143,9 @@ var NETWORKNAME = "ropsten"
 //GenesisBlockHashToDefaultRegistryAddress :
 var GenesisBlockHashToDefaultRegistryAddress = map[common.Hash]common.Address{
 	// spectrum
-	common.HexToHash("0x57e682b80257aad73c4f3ad98d20435b4e1644d8762ef1ea1ff2806c27a5fa3d"): common.HexToAddress("0xCf3C7400C227be86FcdB2c9Be7DEf5c671087620"),
+	common.HexToHash("0x57e682b80257aad73c4f3ad98d20435b4e1644d8762ef1ea1ff2806c27a5fa3d"): common.HexToAddress("0x28233F8e0f8Bd049382077c6eC78bE9c2915c7D4"),
 	// spectrum test net
-	common.HexToHash("0xd011e2cc7f241996a074e2c48307df3971f5f1fe9e1f00cfa704791465d5efc3"): common.HexToAddress("0xb3aE919aB595f5844cba80499ee6423688E06F89"),
+	common.HexToHash("0xd011e2cc7f241996a074e2c48307df3971f5f1fe9e1f00cfa704791465d5efc3"): common.HexToAddress("0xa2150A4647908ab8D0135F1c4BFBB723495e8d12"),
 	// ethereum
 	common.HexToHash("0x88e96d4537bea4d9c05d12549907b32561d3bf31f45aae734cdc119f13406cb6"): utils.EmptyAddress,
 	// ethereum test net
@@ -165,7 +170,7 @@ var EthRPCTimeout = 3 * time.Second
 var ContractVersionPrefix = "0.4"
 
 // EnableForkConfirm : 事件延迟确认开关
-var EnableForkConfirm = true
+var EnableForkConfirm = false
 
 // ForkConfirmNumber : 分叉确认块数量,BlockNumber < 最新块-ForkConfirmNumber的事件被认为无分叉的风险
-var ForkConfirmNumber int64 = 15
+var ForkConfirmNumber int64 = 17

@@ -8,7 +8,7 @@ import (
 
 	"path/filepath"
 
-	photon "github.com/SmartMeshFoundation/Atmosphere"
+	atmosphere "github.com/SmartMeshFoundation/Atmosphere"
 	"github.com/SmartMeshFoundation/Atmosphere/accounts"
 	"github.com/SmartMeshFoundation/Atmosphere/codefortest"
 	"github.com/SmartMeshFoundation/Atmosphere/network/rpc"
@@ -67,7 +67,7 @@ func TestStart(t *testing.T) {
 	params.MobileMode = true
 	GitCommit = utils.NewRandomAddress().String()[2:]
 
-	var api *photon.API
+	var api *atmosphere.API
 	var err error
 	// 1. 无公链第一次启动,must fail
 	clearData(".atmosphere")
@@ -122,7 +122,7 @@ func TestMeshBoxStart(t *testing.T) {
 	os.Args = append(os.Args, fmt.Sprintf("--debug"))
 	params.MobileMode = true
 
-	var api *photon.API
+	var api *atmosphere.API
 	var err error
 	// 1. 无公链第一次启动,must fail
 	clearData(".atmosphere")

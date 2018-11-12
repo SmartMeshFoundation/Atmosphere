@@ -3,9 +3,9 @@ package cases
 import (
 	"time"
 
-	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/casemanager/models"
-	"github.com/SmartMeshFoundation/Atmosphere/network/netshare"
-	"github.com/SmartMeshFoundation/Atmosphere/utils"
+	"github.com/SmartMeshFoundation/Photon/cmd/tools/casemanager/models"
+	"github.com/SmartMeshFoundation/Photon/network/netshare"
+	"github.com/SmartMeshFoundation/Photon/utils"
 )
 
 // LongCase5Nodes :
@@ -404,7 +404,7 @@ func (cm *CaseManager) LongCase5Nodes() (err error) {
 	N0.CooperateSettle(C04.ChannelIdentifier)
 	N1.CooperateSettle(C12.ChannelIdentifier)
 	N2.CooperateSettle(C23.ChannelIdentifier)
-	time.Sleep(time.Duration(settleTimeout) * time.Second) // wait to settle C24
+	time.Sleep(time.Duration(settleTimeout+260) * time.Second) // wait to settle C24
 	N2.Settle(C24.ChannelIdentifier)
 	time.Sleep(100 * time.Second) // wait to settle C24
 

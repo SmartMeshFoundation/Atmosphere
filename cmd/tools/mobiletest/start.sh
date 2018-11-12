@@ -1,0 +1,1 @@
+./mobiletest --datadir=.photon --api-address=127.0.0.1:3001 --listen-address=127.0.0.1:30001 --address="0x97251dDfE70ea44be0E5156C4E3AaDD30328C6a5" --keystore-path /home/chuck/code/run/sr2/keystore --registry-contract-address 0x7B25494cF297D63eA2AF72d43Fc133408674c43a --password-file /home/chuck/code/run/sr2/keystore/pass  --eth-rpc-endpoint ws://127.0.0.1:9000

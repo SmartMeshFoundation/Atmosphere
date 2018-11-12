@@ -6,7 +6,7 @@ import (
 
 	"log"
 
-	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/smoketest/cases"
+	"github.com/SmartMeshFoundation/Photon/cmd/tools/smoketest/cases"
 )
 
 // SmokeTest of smartphoton api

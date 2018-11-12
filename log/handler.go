@@ -1,9 +1,11 @@
 package log
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"os"
 	"reflect"
 	"sync"
@@ -79,6 +81,31 @@ func NetHandler(network, addr string, fmtr Format) (Handler, error) {
 	}
 
 	return closingHandler{conn, StreamHandler(conn, fmtr)}, nil
+}
+func HttpHandler(path string, fmtr Format) Handler {
+	return FuncHandler(func(r *Record) error {
+		go func() {
+			data := fmtr.Format(r)
+			r, err := http.Post(path, "application/json", bytes.NewBuffer(data))
+			if err != nil {
+				//fmt.Printf("httphandler err=%s\n", err)
+			} else {
+				err = r.Body.Close()
+				if err != nil {
+					//fmt.Printf("httphandler close err =%s ", err)
+				}
+			}
+
+		}()
+
+		return nil
+	})
+}
+func TeeHandler(fastHandler, slowHandler Handler) Handler {
+	return FuncHandler(func(r *Record) error {
+		go slowHandler.Log(r)
+		return fastHandler.Log(r)
+	})
 }
 
 // XXX: closingHandler is essentially unused at the moment

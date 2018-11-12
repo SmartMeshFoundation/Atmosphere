@@ -20,10 +20,10 @@ import (
 
 	"strconv"
 
-	"github.com/SmartMeshFoundation/Atmosphere/accounts"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts/test/tokens/tokenerc223approve"
-	"github.com/SmartMeshFoundation/Atmosphere/utils"
+	"github.com/SmartMeshFoundation/Photon/accounts"
+	"github.com/SmartMeshFoundation/Photon/network/rpc/contracts"
+	"github.com/SmartMeshFoundation/Photon/network/rpc/contracts/test/tokens/tokenerc223approve"
+	"github.com/SmartMeshFoundation/Photon/utils"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -112,12 +112,17 @@ func NewTestEnv(configFilePath string) (env *TestEnv, err error) {
 }
 
 func loadTokenNetworkContract(c *config.Config, conn *ethclient.Client, key *ecdsa.PrivateKey) (registryAddress common.Address, registry *contracts.TokenNetworkRegistry) {
-	addr := c.RdString("COMMON", "token_network_address", "new")
+	addr := c.RdString("COMMON", "registry_contract_address", "new")
 	if addr == "new" {
 		registryAddress, registry = deployRegistryContract(conn, key)
 		Logger.Printf("New RegistryAddress : %s\n", registryAddress.String())
 	} else {
+		var err error
 		registryAddress = common.HexToAddress(addr)
+		registry, err = contracts.NewTokenNetworkRegistry(registryAddress, conn)
+		if err != nil {
+			panic(err)
+		}
 	}
 	Logger.Println("Load RegistryAddress SUCCESS")
 	return

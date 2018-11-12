@@ -6,7 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 
-	"github.com/SmartMeshFoundation/Atmosphere/network/helper"
+	"github.com/SmartMeshFoundation/Photon/network/helper"
 
 	"context"
 
@@ -22,14 +22,14 @@ import (
 
 	"time"
 
-	"github.com/SmartMeshFoundation/Atmosphere/accounts"
-	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/newtestenv/createchannel"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts/test/tokens/tokenerc223"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts/test/tokens/tokenerc223approve"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts/test/tokens/tokenether"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts/test/tokens/tokenstandard"
-	"github.com/SmartMeshFoundation/Atmosphere/utils"
+	"github.com/SmartMeshFoundation/Photon/accounts"
+	"github.com/SmartMeshFoundation/Photon/cmd/tools/newtestenv/createchannel"
+	"github.com/SmartMeshFoundation/Photon/network/rpc/contracts"
+	"github.com/SmartMeshFoundation/Photon/network/rpc/contracts/test/tokens/tokenerc223"
+	"github.com/SmartMeshFoundation/Photon/network/rpc/contracts/test/tokens/tokenerc223approve"
+	"github.com/SmartMeshFoundation/Photon/network/rpc/contracts/test/tokens/tokenether"
+	"github.com/SmartMeshFoundation/Photon/network/rpc/contracts/test/tokens/tokenstandard"
+	"github.com/SmartMeshFoundation/Photon/utils"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -37,7 +37,7 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
-var passwords = []string{"123", "111111", "123456"}
+var globalPassword = "111111"
 
 const (
 	tokenERC223   = "erc223"
@@ -112,7 +112,7 @@ func mainctx(ctx *cli.Context) error {
 	fmt.Printf("not-create-channel=%v\n", ctx.Bool("not-create-channel"))
 	fmt.Printf("not-create-token=%v\n", ctx.Bool("not-create-token"))
 	base = ctx.Int("base")
-	passwords[0] = ctx.String("password")
+	globalPassword = ctx.String("password")
 	tokenNumber := ctx.Int("tokennum")
 	//if tokenNumber <= 0 || tokenNumber > 4 {
 	//	log.Fatalf("tokenum must be between 1-4")
@@ -125,8 +125,7 @@ func mainctx(ctx *cli.Context) error {
 
 	_, key := promptAccount(ctx.String("keystore-path"))
 	fmt.Println("start to deploy ...")
-	//registryAddress := deployContract(key, conn)
-	registryAddress := common.HexToAddress("0xa2150A4647908ab8D0135F1c4BFBB723495e8d12")
+	registryAddress := deployContract(key, conn)
 	if ctx.Bool("not-create-token") {
 		return nil
 	}
@@ -175,7 +174,7 @@ func promptAccount(keystorePath string) (addr common.Address, key *ecdsa.Private
 	log.Printf("accounts=%q", am.Accounts)
 	for i := 0; i < 3; i++ {
 		//fmt.Printf("\npassword is %s\n", password)
-		keybin, err := am.GetPrivateKey(addr, passwords[0])
+		keybin, err := am.GetPrivateKey(addr, globalPassword)
 		if err != nil && i == 3 {
 			log.Fatal(fmt.Sprintf("Exhausted passphrase unlock attempts for %s. Aborting ...", addr))
 			os.Exit(1)
@@ -241,16 +240,7 @@ func createTokenAndChannels(key *ecdsa.PrivateKey, conn *helper.SafeEthClient, r
 	var localAccounts []common.Address
 	var keys []*ecdsa.PrivateKey
 	for _, account := range am.Accounts {
-		var keybin []byte
-		for _, p := range passwords {
-			keybin, err = am.GetPrivateKey(account.Address, p)
-			if err != nil {
-				log.Printf("password error for %s,err=%s", utils.APex2(account.Address), err)
-				continue
-			} else {
-				break
-			}
-		}
+		keybin, err := am.GetPrivateKey(account.Address, globalPassword)
 		if err != nil {
 			log.Printf("password error for %s,err=%s", utils.APex2(account.Address), err)
 			continue

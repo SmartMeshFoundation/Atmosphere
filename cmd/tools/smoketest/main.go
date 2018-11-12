@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/smoketest/cases"
-	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/smoketest/models"
+	"github.com/SmartMeshFoundation/Photon/cmd/tools/smoketest/cases"
+	"github.com/SmartMeshFoundation/Photon/cmd/tools/smoketest/models"
 )
 
 var env *models.PhotonEnvReader

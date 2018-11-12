@@ -3,8 +3,8 @@ package cases
 import (
 	"time"
 
-	"github.com/SmartMeshFoundation/Atmosphere/channel/channeltype"
-	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/casemanager/models"
+	"github.com/SmartMeshFoundation/Photon/channel/channeltype"
+	"github.com/SmartMeshFoundation/Photon/cmd/tools/casemanager/models"
 )
 
 // CaseCooperateSettle :
