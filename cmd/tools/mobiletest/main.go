@@ -7,9 +7,9 @@ import (
 
 	"time"
 
-	"github.com/SmartMeshFoundation/Photon/log"
-	"github.com/SmartMeshFoundation/Photon/mobile"
-	"github.com/SmartMeshFoundation/Photon/params"
+	"github.com/SmartMeshFoundation/Atmosphere/log"
+	"github.com/SmartMeshFoundation/Atmosphere/mobile"
+	"github.com/SmartMeshFoundation/Atmosphere/params"
 	ethutils "github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/urfave/cli"
 )
@@ -37,7 +37,7 @@ func main() {
 		cli.StringFlag{
 			Name:  "listen-address",
 			Usage: `"host:port" for the atmosphere service to listen on.`,
-			Value: fmt.Sprintf("0.0.0.0:%d", params.InitialPort),
+			Value: fmt.Sprintf("0.0.0.0:%d", params.DefaultUDPListenPort),
 		},
 		cli.StringFlag{
 			Name:  "api-address",

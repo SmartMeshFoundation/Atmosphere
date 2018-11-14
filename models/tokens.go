@@ -7,13 +7,12 @@ import (
 
 	"github.com/SmartMeshFoundation/Atmosphere/log"
 	"github.com/SmartMeshFoundation/Atmosphere/models/cb"
-	"github.com/SmartMeshFoundation/Atmosphere/utils"
 	"github.com/asdine/storm"
 	"github.com/ethereum/go-ethereum/common"
 )
 
 //AddressMap is token address to mananger address
-type AddressMap map[common.Address]common.Address
+type AddressMap map[common.Address]bool
 
 const bucketToken = "bucketToken"
 const keyToken = "tokens"
@@ -36,18 +35,18 @@ func (model *ModelDB) GetAllTokens() (tokens AddressMap, err error) {
 }
 
 //AddToken add a new token to db,
-func (model *ModelDB) AddToken(token common.Address, tokenNetworkAddress common.Address) error {
+func (model *ModelDB) AddToken(token common.Address) error {
 	var m AddressMap
 	err := model.db.Get(bucketToken, keyToken, &m)
 	if err != nil {
 		return err
 	}
-	if m[token] != utils.EmptyAddress {
+	if m[token] {
 		//startup ...
 		log.Info("AddToken ,but already exists,should be ignored when startup...")
 		return nil
 	}
-	m[token] = tokenNetworkAddress
+	m[token] = true
 	err = model.db.Set(bucketToken, keyToken, m)
 	model.handleTokenCallback(model.newTokenCallbacks, token)
 	return err

@@ -105,12 +105,12 @@ type MatrixTransport struct {
 var (
 	// ValidUserIDRegex user ID 's format
 	ValidUserIDRegex = regexp.MustCompile(`^@(0x[0-9a-f]{40})(?:\.[0-9a-f]{8})?(?::.+)?$`) //(`^[0-9a-z_\-./]+$`)
-	//NETWORKNAME which network is used
-	NETWORKNAME = params.NETWORKNAME
+	//DefaultMatrixNetworkName which network is used
+	NETWORKNAME = params.DefaultMatrixNetworkName
 	//ALIASFRAGMENT the terminal part of alias
-	ALIASFRAGMENT = params.AliasFragment
+	ALIASFRAGMENT = params.DefaultMatrixAliasFragment
 	//DISCOVERYROOMSERVER discovery room server name
-	DISCOVERYROOMSERVER = params.DiscoveryServer
+	DISCOVERYROOMSERVER = params.DefaultMatrixDiscoveryServer
 )
 
 // NewMatrixTransport init matrix

@@ -69,7 +69,7 @@ func (rs *Service) restoreLocks() {
 	var locks []*lockInfo
 	//收集所有的锁,
 	// collect all locks.
-	for token := range rs.Token2TokenNetwork {
+	for token := range rs.TokenAddressMap {
 		g := rs.Token2ChannelGraph[token]
 		for _, ch := range g.ChannelIdentifier2Channel {
 			for _, l := range ch.OurState.Lock2PendingLocks {

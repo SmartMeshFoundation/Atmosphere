@@ -223,6 +223,7 @@ contract TokenNetwork is Utils {
             require(participant != 0x0);
             require(partner != 0x0);
             require(participant != partner);
+            require(settle_timeout >= 6 && settle_timeout <= 2700000);
             //只有这种token第一次创建通道的时候才会检测.
             if (!registered_token[token]) {
                 validAndUpdateToken(token);
@@ -1291,9 +1292,9 @@ contract TokenNetwork is Utils {
         address partner;
         uint64 settle_timeout;
         assembly {
-            participant := mload(add(data, 64))
-            partner := mload(add(data, 96))
-            settle_timeout := mload(add(data, 128))
+            participant := mload(add(data, 32))
+            partner := mload(add(data, 64))
+            settle_timeout := mload(add(data, 96))
         }
         return (participant, partner, settle_timeout);
     }

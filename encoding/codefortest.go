@@ -7,8 +7,8 @@ import (
 
 	"fmt"
 
+	"github.com/SmartMeshFoundation/Atmosphere/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/log"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
 )
 
 //IsTest for test function only

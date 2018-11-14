@@ -9,7 +9,6 @@ import (
 
 	"github.com/SmartMeshFoundation/Atmosphere/channel/channeltype"
 	"github.com/SmartMeshFoundation/Atmosphere/log"
-	"github.com/SmartMeshFoundation/Atmosphere/params"
 	"github.com/SmartMeshFoundation/Atmosphere/transfer"
 	"github.com/SmartMeshFoundation/Atmosphere/transfer/mtree"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
@@ -197,7 +196,7 @@ func OpenChannel(w rest.ResponseWriter, r *rest.Request) {
 		return
 	}
 	if req.State == 0 { //open channel
-		c, err := API.Open(tokenAddr, partnerAddr, req.SettleTimeout, API.Photon.Config.RevealTimeout, req.Balance)
+		c, err := API.Open(tokenAddr, partnerAddr, req.SettleTimeout, API.Atmosphere.Config.RevealTimeout, req.Balance)
 		if err != nil {
 			log.Error(err.Error())
 			rest.Error(w, err.Error(), http.StatusConflict)
@@ -263,7 +262,7 @@ func CloseSettleDepositChannel(w rest.ResponseWriter, r *rest.Request) {
 		return
 	}
 	if req.Balance != nil && req.Balance.Cmp(utils.BigInt0) > 0 { //deposit
-		c, err = API.Deposit(c.TokenAddress(), c.PartnerAddress(), req.Balance, params.DefaultPollTimeout)
+		c, err = API.Deposit(c.TokenAddress(), c.PartnerAddress(), req.Balance)
 		if err != nil {
 			rest.Error(w, err.Error(), http.StatusRequestTimeout)
 			return

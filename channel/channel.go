@@ -8,9 +8,9 @@ import (
 	"math/big"
 
 	"github.com/SmartMeshFoundation/Atmosphere/channel/channeltype"
+	"github.com/SmartMeshFoundation/Atmosphere/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/encoding"
 	"github.com/SmartMeshFoundation/Atmosphere/log"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/fee"
 	"github.com/SmartMeshFoundation/Atmosphere/rerr"
 	"github.com/SmartMeshFoundation/Atmosphere/transfer"
@@ -224,7 +224,7 @@ func (c *Channel) HandleClosed(closingAddress common.Address, transferredAmount 
 	//依据合约上保存的 ContractTransferAmount 以及 LocksRoot 来更新我本地的
 	//the channel was closed, update our half of the state if we need to
 	if closingAddress != c.OurState.Address {
-		c.ExternState.UpdateTransfer(balanceProof)
+		c.ExternState.UpdateTransfer(c.TokenAddress, balanceProof)
 		endStateUpdatedOnContract = c.OurState
 	}
 	endStateUpdatedOnContract.SetContractTransferAmount(transferredAmount)
@@ -251,12 +251,12 @@ func (c *Channel) HandleClosed(closingAddress common.Address, transferredAmount 
 	}
 	unlockProofs := c.PartnerState.GetKnownUnlocks()
 	if len(unlockProofs) > 0 {
-		result := c.ExternState.Unlock(unlockProofs, c.PartnerState.contractTransferAmount())
+		result := c.ExternState.Unlock(c.TokenAddress, unlockProofs, c.PartnerState.contractTransferAmount())
 		go func() {
 			err := <-result.Result
 			if err != nil {
 				//todo 需要回报错误给Photon 调用者
-				// todo need to report error to Photon
+				// todo need to report error to Atmosphere
 				log.Info(fmt.Sprintf("Unlock failed because of %s", err))
 			}
 		}()
@@ -1324,7 +1324,7 @@ func (c *Channel) Close() (result *utils.AsyncResult) {
 	 */
 	c.State = channeltype.StateClosing
 	bp := c.PartnerState.BalanceProofState
-	result = c.ExternState.Close(bp)
+	result = c.ExternState.Close(c.TokenAddress, bp)
 	return
 }
 
@@ -1349,7 +1349,7 @@ func (c *Channel) Settle() (result *utils.AsyncResult) {
 	} else {
 		PartnerTransferAmount = utils.BigInt0
 	}
-	return c.ExternState.Settle(MyTransferAmount, PartnerTransferAmount, MyLocksroot, PartnerLocksroot)
+	return c.ExternState.Settle(c.TokenAddress, MyTransferAmount, PartnerTransferAmount, MyLocksroot, PartnerLocksroot)
 }
 
 //GetNeedRegisterSecrets find all secres need to reveal on secret
@@ -1382,6 +1382,7 @@ func (c *Channel) CooperativeSettleChannel(res *encoding.SettleResponse) (result
 		panic(err)
 	}
 	return c.ExternState.TokenNetwork.CooperativeSettleAsync(
+		c.TokenAddress,
 		res.Participant1, res.Participant2,
 		res.Participant1Balance, res.Participant2Balance,
 		w.Participant1Signature, res.Participant2Signature)
@@ -1396,6 +1397,7 @@ func (c *Channel) CooperativeSettleChannel(res *encoding.SettleResponse) (result
  */
 func (c *Channel) CooperativeSettleChannelOnRequest(partnerSignature []byte, res *encoding.SettleResponse) (result *utils.AsyncResult) {
 	return c.ExternState.TokenNetwork.CooperativeSettleAsync(
+		c.TokenAddress,
 		res.Participant1, res.Participant2,
 		res.Participant1Balance, res.Participant2Balance,
 		partnerSignature, res.Participant2Signature,
@@ -1423,6 +1425,7 @@ func (c *Channel) Withdraw(res *encoding.WithdrawResponse) (result *utils.AsyncR
 		panic(err)
 	}
 	return c.ExternState.TokenNetwork.WithdrawAsync(
+		c.TokenAddress,
 		res.Participant1, res.Participant2,
 		res.Participant1Balance, res.Participant1Withdraw,
 		w.Participant1Signature, res.Participant2Signature,

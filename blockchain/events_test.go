@@ -3,8 +3,6 @@ package blockchain
 import (
 	"testing"
 
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc"
-
 	"fmt"
 
 	"time"
@@ -12,18 +10,19 @@ import (
 	"math/big"
 
 	"github.com/SmartMeshFoundation/Atmosphere/codefortest"
+	"github.com/SmartMeshFoundation/Atmosphere/network/rpc"
 	"github.com/SmartMeshFoundation/Atmosphere/params"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
 
 type fakeRPCModule struct {
-	RegistryAddress       common.Address
+	TokenNetworkAddress   common.Address
 	SecretRegistryAddress common.Address
 }
 
-func (r *fakeRPCModule) GetRegistryAddress() common.Address {
-	return r.RegistryAddress
+func (r *fakeRPCModule) GetTokenNetworkAddress() common.Address {
+	return r.TokenNetworkAddress
 }
 
 func (r *fakeRPCModule) GetSecretRegistryAddress() common.Address {
@@ -35,7 +34,7 @@ func TestNewBlockChainEvents(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	be := NewBlockChainEvents(client, &fakeRPCModule{}, nil)
+	be := NewBlockChainEvents(client, &fakeRPCModule{})
 	if be == nil {
 		t.Error("NewBlockChainEvents failed")
 	}
@@ -47,8 +46,8 @@ func TestEvents_Start(t *testing.T) {
 		panic(err)
 	}
 	be := NewBlockChainEvents(client, &fakeRPCModule{
-		RegistryAddress: rpc.TestGetTokenNetworkRegistryAddress(),
-	}, nil)
+		TokenNetworkAddress: rpc.TestGetTokenNetworkAddress(),
+	})
 	if be == nil {
 		t.Error("NewBlockChainEvents failed")
 	}

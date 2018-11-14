@@ -13,13 +13,13 @@ import (
 )
 
 /*
-API is the interface of Photon network
+API is the interface of Atmosphere network
 should be set before start restful server
 */
 var API *atmosphere.API
 
 /*
-Config is the configuration of Photon network
+Config is the configuration of Atmosphere network
 should be set before start restful server
 */
 var Config *params.Config
@@ -76,7 +76,6 @@ func Start() {
 		*/
 		rest.Get("/api/1/tokens", Tokens),
 		rest.Get("/api/1/tokens/:token/partners", TokenPartners),
-		rest.Put("/api/1/tokens/:token", RegisterToken),
 		/*
 			utils
 		*/
@@ -128,7 +127,7 @@ func Start() {
 		rest.Get("/api/1/debug/force-unlock/:channel/:locksecrethash/:secrethash", ForceUnlock),
 		rest.Post("/api/1/debug/notify_network_down", NotifyNetworkDown), // notify atmosphere network down
 		rest.Get("/api/1/debug/shutdown", func(writer rest.ResponseWriter, request *rest.Request) {
-			API.Photon.Stop()
+			API.Atmosphere.Stop()
 			utils.SystemExit(0)
 		}),
 	)

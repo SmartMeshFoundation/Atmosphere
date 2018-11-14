@@ -12,16 +12,16 @@ import (
 
 	"bytes"
 
-	"github.com/SmartMeshFoundation/Photon/accounts"
-	"github.com/SmartMeshFoundation/Photon/channel"
-	"github.com/SmartMeshFoundation/Photon/channel/channeltype"
-	"github.com/SmartMeshFoundation/Photon/log"
-	"github.com/SmartMeshFoundation/Photon/models"
-	"github.com/SmartMeshFoundation/Photon/network/helper"
-	"github.com/SmartMeshFoundation/Photon/network/rpc"
-	"github.com/SmartMeshFoundation/Photon/params"
-	"github.com/SmartMeshFoundation/Photon/transfer/mtree"
-	"github.com/SmartMeshFoundation/Photon/utils"
+	"github.com/SmartMeshFoundation/Atmosphere/accounts"
+	"github.com/SmartMeshFoundation/Atmosphere/channel"
+	"github.com/SmartMeshFoundation/Atmosphere/channel/channeltype"
+	"github.com/SmartMeshFoundation/Atmosphere/log"
+	"github.com/SmartMeshFoundation/Atmosphere/models"
+	"github.com/SmartMeshFoundation/Atmosphere/network/helper"
+	"github.com/SmartMeshFoundation/Atmosphere/network/rpc"
+	"github.com/SmartMeshFoundation/Atmosphere/params"
+	"github.com/SmartMeshFoundation/Atmosphere/transfer/mtree"
+	"github.com/SmartMeshFoundation/Atmosphere/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/node"
@@ -194,7 +194,7 @@ func (w *withDraw) getTokenNetworkProxy(tokenAddress common.Address) (tokenNetwo
 	if err != nil {
 		return
 	}
-	tokenNetwork, err = w.bcs.TokenNetwork(tokenNetworkAddr)
+	tokenNetwork = w.bcs.NewTokenNetworkProxy(tokenNetworkAddr, true)
 	return
 }
 func (w *withDraw) restoreChannel() error {
@@ -249,7 +249,7 @@ func (w *withDraw) WithDrawOnChannel() {
 				break
 			}
 			unlockProofs2 := c.PartnerState.GetKnownUnlocks()
-			result = c.ExternState.Unlock(unlockProofs2, c.PartnerState.TransferAmount())
+			result = c.ExternState.Unlock(c.TokenAddress, unlockProofs2, c.PartnerState.TransferAmount())
 			err = <-result.Result
 			if err != nil {
 				log.Error(err.Error())

@@ -117,7 +117,7 @@ func TestInitWithUsableRoutes(t *testing.T) {
 	mtr := mtrs[0]
 	assert(t, mtr.Token, utest.UnitTokenAddress)
 	assert(t, mtr.Amount, amount, "transfer amount mismatch")
-	assert(t, mtr.Expiration, expiration-int64(params.DefaultRevealTimeout), "transfer expiration mismatch")
+	assert(t, mtr.Expiration, expiration-int64(params.RevealTimeout), "transfer expiration mismatch")
 	assert(t, mtr.LockSecretHash != utils.EmptyHash, true)
 	assert(t, mtr.Receiver, mediatorAddress)
 	assert(t, initiatorState.Route, routes[0])

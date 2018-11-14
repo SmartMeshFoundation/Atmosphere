@@ -24,7 +24,7 @@ func (cm *CaseManager) LongCase5Nodes() (err error) {
 	tokenAddress := env.Tokens[0].TokenAddress.String()
 	N0, N1, N2, N3, N4 := env.Nodes[0], env.Nodes[1], env.Nodes[2], env.Nodes[3], env.Nodes[4]
 	models.Logger.Println(env.CaseName + " BEGIN ====>")
-	// step 1 : Start 5 Photon nodes
+	// step 1 : Start 5 Atmosphere nodes
 	models.Logger.Println("step 1 ---->")
 	N0.Start(env)
 	N1.Start(env)

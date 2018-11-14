@@ -423,7 +423,7 @@ func setExpiredPairs(transfersPairs []*mediatedtransfer.MediationPairState, bloc
 			     have expired too.
 
 			   The problem is that this corollary cannot be asserted. If a user
-			   is running Photon without a monitoring service, then it may go
+			   is running Atmosphere without a monitoring service, then it may go
 			   offline after having paid a transfer to a payee, but without
 			   getting a balance proof of the payer, and once it comes back
 			   online the transfer may have expired.
@@ -803,7 +803,7 @@ func handleMediatedTransferAgain(state *mediatedtransfer.MediatorState, st *medi
 }
 
 /*
-After Photon learns about a new block this function must be called to
+After Atmosphere learns about a new block this function must be called to
     handle expiration of the hash time locks.
         state : The current state.
 

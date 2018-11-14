@@ -2,15 +2,10 @@ package params
 
 import (
 	"crypto/ecdsa"
-	"os"
-	"os/user"
-	"path/filepath"
-	"runtime"
 
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/node"
 )
 
 type protocolConfig struct {
@@ -41,7 +36,7 @@ const (
 	MixUDPMatrix
 )
 
-//Config is configuration for Photon,
+//Config is configuration for Atmosphere,
 type Config struct {
 	EthRPCEndPoint            string
 	Host                      string
@@ -56,7 +51,7 @@ type Config struct {
 	UseConsole                bool
 	APIHost                   string
 	APIPort                   int
-	RegistryAddress           common.Address
+	TokenNetworkAddress       common.Address
 	DataDir                   string
 	MyAddress                 common.Address
 	DebugCrash                bool          //for test only,work with conditionQuit
@@ -68,12 +63,13 @@ type Config struct {
 	XMPPServer                string
 	IsMeshNetwork             bool   //is mesh now?
 	PfsHost                   string // pathfinder server host
+	EnableForkConfirm         bool
 }
 
 //DefaultConfig default config
 var DefaultConfig = Config{
-	Port:          InitialPort,
-	RevealTimeout: DefaultRevealTimeout,
+	Port:          DefaultUDPListenPort,
+	RevealTimeout: RevealTimeout,
 	SettleTimeout: DefaultSettleTimeout,
 	Protocol: protocolConfig{
 		RetryInterval:        defaultprotocolRetryInterval,
@@ -93,46 +89,4 @@ type ConditionQuit struct {
 	QuitEvent  string //name match
 	IsBefore   bool   //quit before event occur
 	RandomQuit bool   //random exit
-}
-
-/*
-TreatRefundTransferAsNormalMediatedTransfer When refund occurs in the intermediary node,is it treated as a common mediatedtransfer(that is to delete handleSecret in photonservice)?
-todo remove?
-*/
-var TreatRefundTransferAsNormalMediatedTransfer = true
-
-func init() {
-
-}
-
-//DefaultDataDir default work directory
-func DefaultDataDir() string {
-	// Try to place the data folder in the user's home dir
-	home := homeDir()
-	if home != "" {
-		if runtime.GOOS == "darwin" {
-			return filepath.Join(home, "Library", "atmosphere")
-		} else if runtime.GOOS == "windows" {
-			return filepath.Join(home, "AppData", "Roaming", "atmosphere")
-		} else {
-			return filepath.Join(home, ".atmosphere")
-		}
-	}
-	// As we cannot guess a stable location, return empty and handle later
-	return ""
-}
-
-func homeDir() string {
-	if home := os.Getenv("HOME"); home != "" {
-		return home
-	}
-	if usr, err := user.Current(); err == nil {
-		return usr.HomeDir
-	}
-	return ""
-}
-
-//DefaultKeyStoreDir keystore path of ethereum
-func DefaultKeyStoreDir() string {
-	return filepath.Join(node.DefaultDataDir(), "keystore")
 }

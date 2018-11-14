@@ -11,9 +11,9 @@ import (
 	"crypto/ecdsa"
 
 	accountModule "github.com/SmartMeshFoundation/Atmosphere/accounts"
+	"github.com/SmartMeshFoundation/Atmosphere/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/models"
 	"github.com/SmartMeshFoundation/Atmosphere/network/helper"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -29,8 +29,8 @@ var TestKeystorePath = os.Getenv("KEYSTORE")
 // TestPassword :
 var TestPassword = "123"
 
-// DeployRegistryContract :
-func DeployRegistryContract() (registryAddress common.Address, registry *contracts.TokenNetworkRegistry, secretRegistryAddress common.Address, err error) {
+// DeployTokenNetworkContract :
+func DeployTokenNetworkContract() (tokenNetworkAddress common.Address, tokenNetwork *contracts.TokenNetwork, secretRegistryAddress common.Address, err error) {
 	var tx *types.Transaction
 	conn, err := GetEthClient()
 	if err != nil {
@@ -44,11 +44,13 @@ func DeployRegistryContract() (registryAddress common.Address, registry *contrac
 	}
 	key := accounts[0].PrivateKey
 	auth := bind.NewKeyedTransactor(key)
-
-	//Deploy Secret Registry
-	secretRegistryAddress, tx, _, err = contracts.DeploySecretRegistry(auth, conn)
+	chainID, err := conn.NetworkID(context.Background())
 	if err != nil {
-		err = fmt.Errorf("failed to deploy SecretRegistry contract: %v", err)
+		log.Fatalf("failed to get network id %s", err)
+	}
+	tokenNetworkAddress, tx, tokenNetwork, err = contracts.DeployTokenNetwork(auth, conn, chainID)
+	if err != nil {
+		err = fmt.Errorf("failed to deploy TokenNetworkRegistry %s", err)
 		return
 	}
 	ctx := context.Background()
@@ -57,24 +59,12 @@ func DeployRegistryContract() (registryAddress common.Address, registry *contrac
 		err = fmt.Errorf("failed to deploy contact when mining :%v", err)
 		return
 	}
-	fmt.Printf("Deploy SecretRegistry complete...\n")
-	chainID, err := conn.NetworkID(context.Background())
-	if err != nil {
-		log.Fatalf("failed to get network id %s", err)
-	}
-	registryAddress, tx, registry, err = contracts.DeployTokenNetworkRegistry(auth, conn, secretRegistryAddress, chainID)
-	if err != nil {
-		err = fmt.Errorf("failed to deploy TokenNetworkRegistry %s", err)
-		return
-	}
-	ctx = context.Background()
-	_, err = bind.WaitDeployed(ctx, conn, tx)
-	if err != nil {
-		err = fmt.Errorf("failed to deploy contact when mining :%v", err)
-		return
-	}
 	fmt.Printf("deploy TokenNetworkRegistry complete...\n")
-	fmt.Printf("TokenNetworkRegistryAddress=%s, SecretRgistryAddess=%s\n", registryAddress.String(), secretRegistryAddress.String())
+	secretRegistryAddress, err = tokenNetwork.SecretRegistry(nil)
+	if err != nil {
+		return
+	}
+	fmt.Printf("TokenNetworkRegistryAddress=%s, SecretRgistryAddess=%s\n", tokenNetworkAddress.String(), secretRegistryAddress.String())
 	return
 }
 

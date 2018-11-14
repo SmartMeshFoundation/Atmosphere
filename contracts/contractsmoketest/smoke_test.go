@@ -225,7 +225,7 @@ func TestCloseChannel1(t *testing.T) {
 		return
 	}
 
-	tx, err := tokenNetwork.CloseChannel(auth, tokenAddress, partnerAddr, utils.BigInt0, utils.EmptyHash, 0, utils.EmptyHash, nil)
+	tx, err := tokenNetwork.PrepareSettle(auth, tokenAddress, partnerAddr, utils.BigInt0, utils.EmptyHash, 0, utils.EmptyHash, nil)
 	if err != nil {
 		t.Error(err)
 		return
@@ -351,7 +351,7 @@ func TestCloseChannel2(t *testing.T) {
 		bp.AdditionalHash.String(),
 		hex.EncodeToString(bp.Signature),
 	))
-	tx, err := tokenNetwork.CloseChannel(auth, tokenAddress, partnerAddr, bp.TransferAmount, bp.LocksRoot, bp.Nonce, bp.AdditionalHash, bp.Signature)
+	tx, err := tokenNetwork.PrepareSettle(auth, tokenAddress, partnerAddr, bp.TransferAmount, bp.LocksRoot, bp.Nonce, bp.AdditionalHash, bp.Signature)
 	if err != nil {
 		t.Error(err)
 		return
@@ -426,7 +426,7 @@ func TestCloseChannelAndUpdateBalanceProofDelegateAndSettle(t *testing.T) {
 		bp.AdditionalHash.String(),
 		hex.EncodeToString(bp.Signature),
 	))
-	tx, err := tokenNetwork.CloseChannel(auth, tokenAddress, partnerAddr, bp.TransferAmount, bp.LocksRoot, bp.Nonce, bp.AdditionalHash, bp.Signature)
+	tx, err := tokenNetwork.PrepareSettle(auth, tokenAddress, partnerAddr, bp.TransferAmount, bp.LocksRoot, bp.Nonce, bp.AdditionalHash, bp.Signature)
 	if err != nil {
 		t.Error(err)
 		return
@@ -520,7 +520,7 @@ func TestCloseChannelAndUpdateBalanceProofDelegateAndSettle(t *testing.T) {
 		bp.Nonce, bp2.Nonce,
 		bp.BalanceData.Hash().String(), bp2.BalanceData.Hash().String(),
 	))
-	tx, err = tokenNetwork.SettleChannel(
+	tx, err = tokenNetwork.Settle(
 		auth,
 		tokenAddress,
 		partnerAddr,
@@ -567,7 +567,7 @@ func TestCloseChannelAndUpdateBalanceProofAndSettle(t *testing.T) {
 		bp.LocksRoot,
 		bp.Nonce,
 	))
-	tx, err := tokenNetwork.CloseChannel(auth, tokenAddress, partnerAddr, bp.TransferAmount, bp.LocksRoot, bp.Nonce, bp.AdditionalHash, bp.Signature)
+	tx, err := tokenNetwork.PrepareSettle(auth, tokenAddress, partnerAddr, bp.TransferAmount, bp.LocksRoot, bp.Nonce, bp.AdditionalHash, bp.Signature)
 	if err != nil {
 		t.Error(err)
 		return
@@ -633,7 +633,7 @@ func TestCloseChannelAndUpdateBalanceProofAndSettle(t *testing.T) {
 	log.Trace(fmt.Sprintf("SettleChannel arg,p1=%s,p1.amount=%s,p1.lock=%s,p1.nonce=%d,p2=%s,p2.amount=%s,p2.lock=%s,p2.nonce=%d",
 		partnerAddr.String(), bp.TransferAmount, bp.LocksRoot.String(), bp.Nonce, auth.From.String(), bp2.TransferAmount, bp2.LocksRoot.String(), bp2.Nonce,
 	))
-	tx, err = tokenNetwork.SettleChannel(
+	tx, err = tokenNetwork.Settle(
 		auth,
 		tokenAddress,
 		partnerAddr,
@@ -806,7 +806,7 @@ func TestUnlock(t *testing.T) {
 	//我给对方的
 	bp := createPartnerBalanceProof(TestPrivKey, contracts.ChannelIdentifier(channelID))
 	//对方关闭通道
-	tx, err := tokenNetwork.CloseChannel(partnerAuth, tokenAddress, auth.From, bp.TransferAmount, bp.LocksRoot, bp.Nonce, bp.AdditionalHash, bp.Signature)
+	tx, err := tokenNetwork.PrepareSettle(partnerAuth, tokenAddress, auth.From, bp.TransferAmount, bp.LocksRoot, bp.Nonce, bp.AdditionalHash, bp.Signature)
 	if err != nil {
 		t.Error(err)
 		return
@@ -939,7 +939,7 @@ func TestUnlock(t *testing.T) {
 		}
 		time.Sleep(time.Second)
 	}
-	tx, err = tokenNetwork.SettleChannel(
+	tx, err = tokenNetwork.Settle(
 		partnerAuth,
 		tokenAddress,
 		auth.From,
@@ -1173,7 +1173,7 @@ func TestPunishObsoleteUnlock(t *testing.T) {
 	}
 	expiredBlock := h.Number.Int64() + 40
 	bp := createPartnerBalanceProof(partnerKey, contracts.ChannelIdentifier(channelID))
-	tx, err := tokenNetwork.CloseChannel(auth, tokenAddress, partnerAddr, bp.TransferAmount, bp.LocksRoot, bp.Nonce, bp.AdditionalHash, bp.Signature)
+	tx, err := tokenNetwork.PrepareSettle(auth, tokenAddress, partnerAddr, bp.TransferAmount, bp.LocksRoot, bp.Nonce, bp.AdditionalHash, bp.Signature)
 	if err != nil {
 		t.Error(err)
 		return

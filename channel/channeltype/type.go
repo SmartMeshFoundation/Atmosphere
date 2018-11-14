@@ -4,7 +4,7 @@ import (
 	"encoding/gob"
 	"math/big"
 
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
+	"github.com/SmartMeshFoundation/Atmosphere/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/transfer"
 	"github.com/SmartMeshFoundation/Atmosphere/transfer/mtree"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"

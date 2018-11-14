@@ -8,8 +8,8 @@ import (
 	"bytes"
 	"encoding/binary"
 
+	"github.com/SmartMeshFoundation/Atmosphere/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/encoding"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"

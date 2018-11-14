@@ -143,5 +143,5 @@ func StartPhotonNode(RegistryAddress string) {
 	}
 	log.Println("Sleep 60 seconds to wait atmosphere nodes start ...")
 	time.Sleep(60 * time.Second)
-	log.Println("Photon nodes start done")
+	log.Println("Atmosphere nodes start done")
 }

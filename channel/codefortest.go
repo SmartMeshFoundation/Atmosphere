@@ -9,8 +9,8 @@ import (
 
 	"os"
 
+	"github.com/SmartMeshFoundation/Atmosphere/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/network/rpc"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/transfer/mtree"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -37,10 +37,7 @@ var testFuncRegisterChannelForHashlock = func(channel *Channel, hashlock common.
 func makeTestExternState() *ExternalState {
 	bcs := newTestBlockChainService()
 	//must provide a valid netting channel address
-	tokenNetwork, err := bcs.TokenNetwork(common.HexToAddress(os.Getenv("TOKEN_NETWORK")))
-	if err != nil {
-		panic(err)
-	}
+	tokenNetwork := bcs.NewTokenNetworkProxy(common.HexToAddress(os.Getenv("TOKEN_NETWORK")), true)
 	channelID := common.HexToHash(os.Getenv("CHANNEL"))
 	channelIdentifer := &contracts.ChannelUniqueID{
 		ChannelIdentifier: channelID,

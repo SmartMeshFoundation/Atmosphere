@@ -21,6 +21,7 @@ import (
 	"github.com/SmartMeshFoundation/Atmosphere/blockchain"
 	"github.com/SmartMeshFoundation/Atmosphere/channel"
 	"github.com/SmartMeshFoundation/Atmosphere/channel/channeltype"
+	"github.com/SmartMeshFoundation/Atmosphere/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/encoding"
 	"github.com/SmartMeshFoundation/Atmosphere/internal/rpanic"
 	"github.com/SmartMeshFoundation/Atmosphere/log"
@@ -29,7 +30,6 @@ import (
 	"github.com/SmartMeshFoundation/Atmosphere/network/graph"
 	"github.com/SmartMeshFoundation/Atmosphere/network/netshare"
 	"github.com/SmartMeshFoundation/Atmosphere/network/rpc"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/fee"
 	"github.com/SmartMeshFoundation/Atmosphere/notify"
 	"github.com/SmartMeshFoundation/Atmosphere/params"
@@ -91,9 +91,8 @@ type Service struct {
 	 */
 	PrivateKey            *ecdsa.PrivateKey
 	NodeAddress           common.Address
+	TokenAddressMap       map[common.Address]bool
 	Token2ChannelGraph    map[common.Address]*graph.ChannelGraph
-	TokenNetwork2Token    map[common.Address]common.Address
-	Token2TokenNetwork    map[common.Address]common.Address
 	Transfer2StateManager map[common.Hash]*transfer.StateManager
 	Transfer2Result       map[common.Hash]*utils.AsyncResult
 	SwapKey2TokenSwap     map[swapKey]*TokenSwap
@@ -143,9 +142,8 @@ func NewPhotonService(chain *rpc.BlockChainService, privateKey *ecdsa.PrivateKey
 		Transport:                             transport,
 		db:                                    db,
 		NodeAddress:                           crypto.PubkeyToAddress(privateKey.PublicKey),
+		TokenAddressMap:                       make(map[common.Address]bool),
 		Token2ChannelGraph:                    make(map[common.Address]*graph.ChannelGraph),
-		TokenNetwork2Token:                    make(map[common.Address]common.Address),
-		Token2TokenNetwork:                    make(map[common.Address]common.Address),
 		Transfer2StateManager:                 make(map[common.Hash]*transfer.StateManager),
 		Transfer2Result:                       make(map[common.Hash]*utils.AsyncResult),
 		Token2Hashlock2Channels:               make(map[common.Address]map[common.Hash][]*channel.Channel),
@@ -186,16 +184,20 @@ func NewPhotonService(chain *rpc.BlockChainService, privateKey *ecdsa.PrivateKey
 		err = fmt.Errorf("another instance already running at %s", config.DataBasePath)
 		return
 	}
-	log.Info(fmt.Sprintf("create atmosphere service registry=%s,node=%s", rs.Chain.GetRegistryAddress().String(), rs.NodeAddress.String()))
+	log.Info(fmt.Sprintf("create atmosphere service token_network=%s,node=%s", rs.Chain.GetTokenNetworkAddress().String(), rs.NodeAddress.String()))
 
-	rs.Token2TokenNetwork, err = rs.db.GetAllTokens()
+	rs.TokenAddressMap, err = rs.db.GetAllTokens()
 	if err != nil {
 		return
 	}
-	for t, tn := range rs.Token2TokenNetwork {
-		rs.TokenNetwork2Token[tn] = t
+	// events
+	rs.BlockChainEvents = blockchain.NewBlockChainEvents(chain.Client, chain)
+	rs.BlockChainEvents.Config.EnableForkConfirm = config.EnableForkConfirm
+	// for test
+	if params.ChainID.Int64() == params.TestPrivateChainID {
+		rs.BlockChainEvents.Config.LogPeriod = 10
+		rs.BlockChainEvents.Config.RPCPollPeriod = params.DefaultEthRPCPollPeriodForTest
 	}
-	rs.BlockChainEvents = blockchain.NewBlockChainEvents(chain.Client, chain, rs.Token2TokenNetwork)
 	// pathfinder
 	if config.PfsHost != "" {
 		rs.PfsProxy = pfsproxy.NewPfsProxy(config.PfsHost, rs.PrivateKey)
@@ -266,7 +268,7 @@ func (rs *Service) Start() (err error) {
 	if rs.Chain.Client.Status == netshare.Connected {
 		//wait for start up complete.
 		<-rs.ChanHistoryContractEventsDealComplete
-		log.Info(fmt.Sprintf("Photon Startup complete and history events process complete."))
+		log.Info(fmt.Sprintf("Atmosphere Startup complete and history events process complete."))
 	}
 	//
 	rs.isStarting = false
@@ -393,13 +395,13 @@ func (rs *Service) loop() {
 // for init, read db history,
 // all on-chain events I have not handled should wait in queue.
 func (rs *Service) registerRegistry() {
-	token2TokenNetworks, err := rs.db.GetAllTokens()
+	tokenAddressMap, err := rs.db.GetAllTokens()
 	if err != nil {
 		err = fmt.Errorf("registerRegistry err:%s", err)
 		return
 	}
-	for token, tokenNetwork := range token2TokenNetworks {
-		err = rs.registerTokenNetwork(token, tokenNetwork)
+	for token := range tokenAddressMap {
+		err = rs.registerTokenNetwork(token)
 		if err != nil {
 			err = fmt.Errorf("registerTokenNetwork err:%s", err)
 			return
@@ -620,15 +622,12 @@ func (rs *Service) channelSerilization2Channel(c *channeltype.Serialization, tok
 }
 
 //read a token network info from db
-func (rs *Service) registerTokenNetwork(tokenAddress, tokenNetworkAddress common.Address) (err error) {
-	tokenNetwork, err := rs.Chain.TokenNetworkWithoutCheck(tokenNetworkAddress)
-	edges, err := rs.db.GetAllNonParticipantChannel(tokenAddress)
+func (rs *Service) registerTokenNetwork(tokenAddress common.Address) (err error) {
+	edges, err := rs.db.GetAllNonParticipantChannelByToken(tokenAddress)
 	if err != nil {
 		return
 	}
 	g := graph.NewChannelGraph(rs.NodeAddress, tokenAddress, edges)
-	rs.TokenNetwork2Token[tokenNetworkAddress] = tokenAddress
-	rs.Token2TokenNetwork[tokenAddress] = tokenNetworkAddress
 	rs.Token2ChannelGraph[tokenAddress] = g
 	//add channel I participant
 	css, err := rs.db.GetChannelList(tokenAddress, utils.EmptyAddress)
@@ -638,7 +637,7 @@ func (rs *Service) registerTokenNetwork(tokenAddress, tokenNetworkAddress common
 		if cs.State == channeltype.StateSettled {
 			continue
 		}
-		ch, err := rs.channelSerilization2Channel(cs, tokenNetwork)
+		ch, err := rs.channelSerilization2Channel(cs, rs.Chain.TokenNetworkProxy)
 		if err != nil {
 			return err
 		}
@@ -653,20 +652,12 @@ func (rs *Service) registerTokenNetwork(tokenAddress, tokenNetworkAddress common
 /*
 found new channel on blockchain when running...
 */
-func (rs *Service) registerChannel(tokenNetworkAddress common.Address, partnerAddress common.Address, channelIdentifier *contracts.ChannelUniqueID, settleTimeout int) {
-	tokenNetwork, err := rs.Chain.TokenNetwork(tokenNetworkAddress)
-	if err != nil {
-		log.Error(fmt.Sprintf("receive new channel %s-%s,but cannot create tokennetwork err %s",
-			utils.APex2(tokenNetworkAddress), utils.APex2(partnerAddress), err,
-		))
-		return
-	}
-	tokenAddress := rs.TokenNetwork2Token[tokenNetworkAddress]
+func (rs *Service) registerChannel(tokenAddress common.Address, partnerAddress common.Address, channelIdentifier *contracts.ChannelUniqueID, settleTimeout int) {
 	if rs.getChannel(tokenAddress, partnerAddress) != nil {
 		log.Error(fmt.Sprintf("receive new channel %s-%s,but this channel already exist, maybe a duplicate channel event", utils.APex2(tokenAddress), utils.APex2(partnerAddress)))
 		return
 	}
-	ch, err := rs.newChannelFromEvent(tokenNetwork, tokenAddress, partnerAddress, channelIdentifier, settleTimeout)
+	ch, err := rs.newChannelFromEvent(rs.Chain.TokenNetworkProxy, tokenAddress, partnerAddress, channelIdentifier, settleTimeout)
 	if err != nil {
 		log.Error(fmt.Sprintf("newChannelFromEvent err %s", err))
 		return
@@ -1105,32 +1096,6 @@ func (rs *Service) getChannel(tokenAddr, partnerAddr common.Address) *channel.Ch
 }
 
 /*
-Process user's new channel request
-*/
-func (rs *Service) newChannel(token, partner common.Address, settleTimeout int) (result *utils.AsyncResult) {
-	tokenNetwork, err := rs.Chain.TokenNetwork(rs.Token2TokenNetwork[token])
-	if err != nil {
-		result = utils.NewAsyncResultWithError(err)
-		return
-	}
-	result = tokenNetwork.NewChannelAsync(rs.NodeAddress, partner, settleTimeout)
-	return
-}
-
-/*
-Process user's new channel request
-*/
-func (rs *Service) newChannelAndDeposit(token, partner common.Address, settleTimeout int, amount *big.Int) (result *utils.AsyncResult) {
-	tokenNetwork, err := rs.Chain.TokenNetwork(rs.Token2TokenNetwork[token])
-	if err != nil {
-		result = utils.NewAsyncResultWithError(err)
-		return
-	}
-	result = tokenNetwork.NewChannelAndDepositAsync(rs.NodeAddress, partner, settleTimeout, amount)
-	return
-}
-
-/*
 process user's deposit request
 */
 func (rs *Service) depositChannel(channelIdentifier common.Hash, amount *big.Int) (result *utils.AsyncResult) {
@@ -1504,7 +1469,7 @@ func (rs *Service) GetDb() *models.ModelDB {
 }
 
 /*
-things to do when Photon connect to eth
+things to do when Atmosphere connect to eth
 */
 func (rs *Service) handleEthRPCConnectionOK() {
 	/*
@@ -1514,7 +1479,7 @@ func (rs *Service) handleEthRPCConnectionOK() {
 	//启动的时候如果公链 rpc连接有问题,一旦链上,就应该重新初始化 registry, 否则无法进行注册 token 等操作
 	// If rpc connection fails in public chain, once reconnecting, we should reinitialize registry,
 	// otherwise we can do things like token registry.
-	rs.Chain.Registry(rs.Config.RegistryAddress, true)
+	rs.Chain.NewTokenNetworkProxy(rs.Config.TokenNetworkAddress, true)
 	// 重连时上传手续费设置给PFS
 	if fm, ok := rs.FeePolicy.(*FeeModule); ok {
 		err := fm.SubmitFeePolicyToPFS()
@@ -1538,9 +1503,9 @@ func (rs *Service) handleReq(req *apiReq) {
 	case newChannelReqName:
 		r := req.Req.(*newChannelReq)
 		if r.amount != nil && r.amount.Cmp(utils.BigInt0) > 0 {
-			result = rs.newChannelAndDeposit(r.tokenAddress, r.partnerAddress, r.settleTimeout, r.amount)
+			result = rs.Chain.TokenNetworkProxy.DepositAsync(r.tokenAddress, rs.NodeAddress, r.partnerAddress, r.amount, r.settleTimeout)
 		} else {
-			result = rs.newChannel(r.tokenAddress, r.partnerAddress, r.settleTimeout)
+			result = utils.NewAsyncResultWithError(errors.New("can not create channel with amount <= 0"))
 		}
 	case depositChannelReqName:
 		r := req.Req.(*depositChannelReq)

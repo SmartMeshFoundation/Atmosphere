@@ -66,10 +66,10 @@ func newTestPhotonWithPolicy(feePolicy fee.Charger) *Service {
 	return rd
 }
 func newTestPhotonAPI() *API {
-	api := NewPhotonAPI(newTestPhoton())
-	err := api.Photon.Start()
+	api := NewAtmosphereAPI(newTestPhoton())
+	err := api.Atmosphere.Start()
 	if err != nil {
-		panic(fmt.Sprintf("Photon start err %s", err))
+		panic(fmt.Sprintf("Atmosphere start err %s", err))
 	}
 	return api
 }
@@ -124,10 +124,10 @@ func makeTestPhotons() (r1, r2, r3 *Service) {
 	return
 }
 func newTestPhotonAPIQuick() *API {
-	api := NewPhotonAPI(newTestPhoton())
+	api := NewAtmosphereAPI(newTestPhoton())
 	//go func() {
 	//	/*#nosec*/
-	//	api.Photon.Start()
+	//	api.Atmosphere.Start()
 	//}()
 	return api
 }
@@ -141,22 +141,22 @@ func makeTestPhotonAPIs() (rA, rB, rC, rD *API) {
 	wg.Add(4)
 	go func() {
 		/*#nosec*/
-		rA.Photon.Start()
+		rA.Atmosphere.Start()
 		wg.Done()
 	}()
 	go func() {
 		/*#nosec*/
-		rB.Photon.Start()
+		rB.Atmosphere.Start()
 		wg.Done()
 	}()
 	go func() {
 		/*#nosec*/
-		rC.Photon.Start()
+		rC.Atmosphere.Start()
 		wg.Done()
 	}()
 	go func() {
 		/*#nosec*/
-		rD.Photon.Start()
+		rD.Atmosphere.Start()
 		wg.Done()
 	}()
 	wg.Wait()
@@ -175,7 +175,7 @@ func makeTestPhotonAPIArrays(datadirs ...string) (apis []*API) {
 		api := newTestPhotonAPIQuick()
 		go func() {
 			/*#nosec*/
-			api.Photon.Start()
+			api.Atmosphere.Start()
 			wg.Done()
 		}()
 		apis = append(apis, api)
@@ -185,30 +185,30 @@ func makeTestPhotonAPIArrays(datadirs ...string) (apis []*API) {
 }
 
 func makeTestPhotonAPIsWithFee(policy fee.Charger) (rA, rB, rC, rD *API) {
-	rA = NewPhotonAPI(newTestPhotonWithPolicy(policy))
-	rB = NewPhotonAPI(newTestPhotonWithPolicy(policy))
-	rC = NewPhotonAPI(newTestPhotonWithPolicy(policy))
-	rD = NewPhotonAPI(newTestPhotonWithPolicy(policy))
+	rA = NewAtmosphereAPI(newTestPhotonWithPolicy(policy))
+	rB = NewAtmosphereAPI(newTestPhotonWithPolicy(policy))
+	rC = NewAtmosphereAPI(newTestPhotonWithPolicy(policy))
+	rD = NewAtmosphereAPI(newTestPhotonWithPolicy(policy))
 	wg := sync.WaitGroup{}
 	wg.Add(4)
 	go func() {
 		/*#nosec*/
-		rA.Photon.Start()
+		rA.Atmosphere.Start()
 		wg.Done()
 	}()
 	go func() {
 		/*#nosec*/
-		rB.Photon.Start()
+		rB.Atmosphere.Start()
 		wg.Done()
 	}()
 	go func() {
 		/*#nosec*/
-		rC.Photon.Start()
+		rC.Atmosphere.Start()
 		wg.Done()
 	}()
 	go func() {
 		/*#nosec*/
-		rD.Photon.Start()
+		rD.Atmosphere.Start()
 		wg.Done()
 	}()
 	wg.Wait()

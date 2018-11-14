@@ -15,8 +15,8 @@ import (
 
 	"encoding/hex"
 
+	"github.com/SmartMeshFoundation/Atmosphere/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/log"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/params"
 	"github.com/SmartMeshFoundation/Atmosphere/transfer/mtree"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
@@ -440,7 +440,7 @@ func (sr *SecretRequest) String() string {
 /*
 RevealSecret used to reveal a secret to party known to have interest in it.
 
-This message is not sufficient for state changes in the Photon Channel, the
+This message is not sufficient for state changes in the Atmosphere Channel, the
 reason is that a node participating in split transfer or in both mediated
 transfer for an exchange might can reveal the secret to it's partners, but
 that must not update the internal channel state.
@@ -660,7 +660,7 @@ func (m *EnvelopMessage) fromBalanceProof(bp *BalanceProof) {
 }
 
 /*
-UnLock Message used to do state changes on a partner Photon Channel.
+UnLock Message used to do state changes on a partner Atmosphere Channel.
 
 Locksroot changes need to be synchronized among both participants, the
 protocol is for only the side unlocking to send the Secret message allowing
@@ -803,7 +803,7 @@ Args:
         the channel partner. This value is monotonically increasing and can
         be larger than a channels deposit, since the channels are
         bidirecional.
-    recipient: The address of the Photon node participating in the channel.
+    recipient: The address of the Atmosphere node participating in the channel.
     locksroot: The root of a merkle tree which records the current
         outstanding locks.
 */

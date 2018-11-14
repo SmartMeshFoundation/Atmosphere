@@ -113,7 +113,7 @@ func tryNewRoute(state *mt.InitiatorState) *transfer.TransitionResult {
 		         The two nodes will most likely disagree on latest block, as far as
 		         the expiration goes this is no problem.
 	*/
-	lockExpiration := state.BlockNumber + int64(tryRoute.SettleTimeout()) - int64(params.DefaultRevealTimeout) // - revealTimeout for test
+	lockExpiration := state.BlockNumber + int64(tryRoute.SettleTimeout()) - int64(params.RevealTimeout) // - revealTimeout for test
 	if lockExpiration > state.Transfer.Expiration && state.Transfer.Expiration != 0 {
 		lockExpiration = state.Transfer.Expiration
 	}

@@ -2,21 +2,7 @@ package testfilter
 
 import (
 	"testing"
-
-	"fmt"
-
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
-	"github.com/SmartMeshFoundation/Atmosphere/utils"
 )
-
-func TestStruct(t *testing.T) {
-	tt := contracts.TokenNetworkRegistryTokenNetworkCreated{
-		TokenAddress: utils.NewRandomAddress(),
-	}
-	t2 := tt
-	t2.TokenAddress = utils.NewRandomAddress()
-	t.Logf(fmt.Sprintf("tt=%s,t2=%s", tt.TokenAddress.String(), t2.TokenAddress.String()))
-}
 
 func TestFilter1(t *testing.T) {
 	//client, err := ethclient.Dial(rpc.TestRPCEndpoint)
@@ -43,24 +29,24 @@ func TestFilter1(t *testing.T) {
 	//for it.Next() {
 	//	fmt.Printf("event=%s", utils.StringInterface(it.Event, 3))
 	//}
-	////ch := make(chan *contracts.TokenNetworkRegistryTokenNetworkCreated, 10)
-	////var start uint64
-	////sub, err := f.WatchTokenNetworkCreated(&bind.WatchOpts{
-	////	Start: &start,
-	////}, ch, nil, nil)
-	////if err != nil {
-	////	t.Error(err)
-	////	return
-	////}
-	////for {
-	////	select {
-	////	case <-time.After(1 * time.Second):
-	////		sub.Unsubscribe()
-	////		return
-	////	case e := <-ch:
-	////		fmt.Printf("sub event=%s", utils.StringInterface(e, 3))
-	////	}
-	////}
+	//ch := make(chan *contracts.TokenNetworkRegistryTokenNetworkCreated, 10)
+	//var start uint64
+	//sub, err := f.WatchTokenNetworkCreated(&bind.WatchOpts{
+	//	Start: &start,
+	//}, ch, nil, nil)
+	//if err != nil {
+	//	t.Error(err)
+	//	return
+	//}
+	//for {
+	//	select {
+	//	case <-time.After(1 * time.Second):
+	//		sub.Unsubscribe()
+	//		return
+	//	case e := <-ch:
+	//		fmt.Printf("sub event=%s", utils.StringInterface(e, 3))
+	//	}
+	//}
 }
 
 func TestFilter2(t *testing.T) {

@@ -28,7 +28,7 @@ func UpdateMeshNetworkNodes(w rest.ResponseWriter, r *rest.Request) {
 		rest.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	err = API.Photon.Protocol.UpdateMeshNetworkNodes(nodes)
+	err = API.Atmosphere.Protocol.UpdateMeshNetworkNodes(nodes)
 	if err != nil {
 		rest.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -49,7 +49,7 @@ func SwitchNetwork(w rest.ResponseWriter, r *rest.Request) {
 		rest.Error(w, "arg error", http.StatusBadRequest)
 		return
 	}
-	API.Photon.Config.IsMeshNetwork = isMesh
+	API.Atmosphere.Config.IsMeshNetwork = isMesh
 	_, err = w.(http.ResponseWriter).Write([]byte("ok"))
 	if err != nil {
 		log.Warn(fmt.Sprintf("writejson err %s", err))
@@ -65,8 +65,8 @@ func PrepareUpdate(w rest.ResponseWriter, r *rest.Request) {
 	}()
 	// 这里没并发问题,直接操作即可
 	// no concurrent issue, just do it.
-	API.Photon.StopCreateNewTransfers = true
-	num := len(API.Photon.Transfer2StateManager)
+	API.Atmosphere.StopCreateNewTransfers = true
+	num := len(API.Atmosphere.Transfer2StateManager)
 	if num > 0 {
 		err = fmt.Errorf("%d transactions are still in progress. Please wait until all transactions are over", num)
 		rest.Error(w, err.Error(), http.StatusBadRequest)

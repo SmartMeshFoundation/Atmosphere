@@ -16,7 +16,7 @@ Address is api of /api/1/address
 */
 func Address(w rest.ResponseWriter, r *rest.Request) {
 	data := make(map[string]interface{})
-	data["our_address"] = API.Photon.NodeAddress.String()
+	data["our_address"] = API.Atmosphere.NodeAddress.String()
 	err := w.WriteJson(data)
 	if err != nil {
 		log.Warn(fmt.Sprintf("writejson err %s", err))

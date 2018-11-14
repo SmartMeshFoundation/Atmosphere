@@ -165,12 +165,12 @@ func TestVerifyContractCode(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
-	registryAddress, _, _, err := codefortest.DeployRegistryContract()
+	tokenNetworkAddress, _, _, err := codefortest.DeployTokenNetworkContract()
 	if err != nil {
 		t.Error(err.Error())
 		return
 	}
-	bcs, err := rpc.NewBlockChainService(accounts[0].PrivateKey, registryAddress, client)
+	bcs, err := rpc.NewBlockChainService(accounts[0].PrivateKey, tokenNetworkAddress, client)
 	if err != nil {
 		t.Error(err.Error())
 		return

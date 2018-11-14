@@ -29,13 +29,13 @@ import (
         instead.
 */
 type photonMessageHandler struct {
-	photon        *Service
+	atmosphere    *Service
 	blockedTokens map[common.Address]bool
 }
 
 func newPhotonMessageHandler(photon *Service) *photonMessageHandler {
 	h := &photonMessageHandler{
-		photon:        photon,
+		atmosphere:    photon,
 		blockedTokens: make(map[common.Address]bool),
 	}
 	return h
@@ -50,7 +50,7 @@ func (mh *photonMessageHandler) onMessage(msg encoding.SignedMessager, hash comm
 	})
 	switch m2 := msg.(type) {
 	case *encoding.SecretRequest:
-		f := mh.photon.SecretRequestPredictorMap[m2.LockSecretHash]
+		f := mh.atmosphere.SecretRequestPredictorMap[m2.LockSecretHash]
 		if f != nil {
 			ignore := (f)(m2)
 			if ignore {
@@ -59,11 +59,11 @@ func (mh *photonMessageHandler) onMessage(msg encoding.SignedMessager, hash comm
 		}
 		err = mh.messageSecretRequest(m2)
 	case *encoding.RevealSecret:
-		f := mh.photon.RevealSecretListenerMap[m2.LockSecretHash()]
+		f := mh.atmosphere.RevealSecretListenerMap[m2.LockSecretHash()]
 		if f != nil {
 			remove := (f)(m2)
 			if remove {
-				delete(mh.photon.RevealSecretListenerMap, m2.LockSecretHash())
+				delete(mh.atmosphere.RevealSecretListenerMap, m2.LockSecretHash())
 			}
 		}
 		err = mh.messageRevealSecret(m2) //has no relation with statemanager,duplicate message will be ok
@@ -74,10 +74,10 @@ func (mh *photonMessageHandler) onMessage(msg encoding.SignedMessager, hash comm
 	case *encoding.MediatedTransfer:
 		err = mh.messageMediatedTransfer(m2)
 		if err == nil {
-			for f := range mh.photon.ReceivedMediatedTrasnferListenerMap {
+			for f := range mh.atmosphere.ReceivedMediatedTrasnferListenerMap {
 				remove := (*f)(m2)
 				if remove {
-					delete(mh.photon.ReceivedMediatedTrasnferListenerMap, f)
+					delete(mh.atmosphere.ReceivedMediatedTrasnferListenerMap, f)
 				}
 			}
 		}
@@ -110,7 +110,7 @@ func (mh *photonMessageHandler) balanceProof(msg *encoding.UnLock) {
 		BalanceProof:   blanceProof,
 		Message:        msg,
 	}
-	mh.photon.StateMachineEventHandler.dispatchBySecretHash(balanceProof.LockSecretHash, balanceProof)
+	mh.atmosphere.StateMachineEventHandler.dispatchBySecretHash(balanceProof.LockSecretHash, balanceProof)
 }
 
 /*
@@ -120,14 +120,14 @@ func (mh *photonMessageHandler) balanceProof(msg *encoding.UnLock) {
 func (mh *photonMessageHandler) messageRevealSecret(msg *encoding.RevealSecret) error {
 	secret := msg.LockSecret
 	sender := msg.Sender
-	mh.photon.registerSecret(secret)
+	mh.atmosphere.registerSecret(secret)
 	stateChange := &mediatedtransfer.ReceiveSecretRevealStateChange{Secret: secret, Sender: sender, Message: msg}
 	// save log to db
-	channels := mh.photon.findAllChannelsByLockSecretHash(msg.LockSecretHash())
+	channels := mh.atmosphere.findAllChannelsByLockSecretHash(msg.LockSecretHash())
 	for _, c := range channels {
-		mh.photon.db.UpdateTransferStatusMessage(c.TokenAddress, msg.LockSecretHash(), fmt.Sprintf("收到 RevealSecret, from=%s", utils.APex2(msg.Sender)))
+		mh.atmosphere.db.UpdateTransferStatusMessage(c.TokenAddress, msg.LockSecretHash(), fmt.Sprintf("收到 RevealSecret, from=%s", utils.APex2(msg.Sender)))
 	}
-	mh.photon.StateMachineEventHandler.dispatchBySecretHash(msg.LockSecretHash(), stateChange)
+	mh.atmosphere.StateMachineEventHandler.dispatchBySecretHash(msg.LockSecretHash(), stateChange)
 	return nil
 }
 
@@ -153,11 +153,11 @@ func (mh *photonMessageHandler) messageSecretRequest(msg *encoding.SecretRequest
 		Message:        msg,
 	}
 	// save log to db
-	channels := mh.photon.findAllChannelsByLockSecretHash(msg.LockSecretHash)
+	channels := mh.atmosphere.findAllChannelsByLockSecretHash(msg.LockSecretHash)
 	for _, c := range channels {
-		mh.photon.db.UpdateTransferStatusMessage(c.TokenAddress, stateChange.LockSecretHash, fmt.Sprintf("收到 SecretRequest, from=%s", utils.APex2(msg.Sender)))
+		mh.atmosphere.db.UpdateTransferStatusMessage(c.TokenAddress, stateChange.LockSecretHash, fmt.Sprintf("收到 SecretRequest, from=%s", utils.APex2(msg.Sender)))
 	}
-	mh.photon.StateMachineEventHandler.dispatchBySecretHash(stateChange.LockSecretHash, stateChange)
+	mh.atmosphere.StateMachineEventHandler.dispatchBySecretHash(stateChange.LockSecretHash, stateChange)
 	return nil
 }
 
@@ -185,10 +185,10 @@ func (mh *photonMessageHandler) messageSecretRequest(msg *encoding.SecretRequest
 func (mh *photonMessageHandler) messageUnlock(msg *encoding.UnLock) error {
 	lockSecretHash := msg.LockSecretHash()
 	secret := msg.LockSecret
-	mh.photon.registerSecret(secret)
+	mh.atmosphere.registerSecret(secret)
 	var ch *channel.Channel
 	var err error
-	ch, err = mh.photon.findChannelByIdentifier(msg.ChannelIdentifier)
+	ch, err = mh.atmosphere.findChannelByIdentifier(msg.ChannelIdentifier)
 	if err != nil {
 		log.Info(fmt.Sprintf("Message for unknown channel: %s", err))
 		return err
@@ -209,7 +209,7 @@ func (mh *photonMessageHandler) messageUnlock(msg *encoding.UnLock) error {
 	if !channeltype.CanDealUnlock[ch.State] {
 		return errors.New("received unlock msg,but channel cannot deal unlock, do nothing")
 	}
-	err = ch.RegisterTransfer(mh.photon.GetBlockNumber(), msg)
+	err = ch.RegisterTransfer(mh.atmosphere.GetBlockNumber(), msg)
 	if err != nil {
 		log.Error(fmt.Sprintf("messageUnlock RegisterTransfer err=%s", err))
 		return err
@@ -218,9 +218,9 @@ func (mh *photonMessageHandler) messageUnlock(msg *encoding.UnLock) error {
 		验证过消息是有效的,然后通知相应的 stateMana 该结束的结束,
 	*/
 	mh.balanceProof(msg)
-	mh.photon.updateChannelAndSaveAck(ch, msg.Tag())
+	mh.atmosphere.updateChannelAndSaveAck(ch, msg.Tag())
 	// submit balance proof to pathfinder
-	go mh.photon.submitBalanceProofToPfs(ch)
+	go mh.atmosphere.submitBalanceProofToPfs(ch)
 	return nil
 }
 
@@ -237,7 +237,7 @@ func (mh *photonMessageHandler) messageUnlock(msg *encoding.UnLock) error {
  *	Reasonable to update channel and store ACK.
  */
 func (mh *photonMessageHandler) messageRemoveExpiredHashlockTransfer(msg *encoding.RemoveExpiredHashlockTransfer) error {
-	ch, err := mh.photon.findChannelByIdentifier(msg.ChannelIdentifier)
+	ch, err := mh.atmosphere.findChannelByIdentifier(msg.ChannelIdentifier)
 	if err != nil {
 		return fmt.Errorf("received  RemoveExpiredHashlockTransfer ,but relate channel cannot found %s", utils.StringInterface(msg, 7))
 	}
@@ -245,7 +245,7 @@ func (mh *photonMessageHandler) messageRemoveExpiredHashlockTransfer(msg *encodi
 		log.Warn(fmt.Sprintf("receive msg %s, but channel cannot continue transfer", msg))
 		return nil
 	}
-	err = ch.RegisterRemoveExpiredHashlockTransfer(msg, mh.photon.GetBlockNumber())
+	err = ch.RegisterRemoveExpiredHashlockTransfer(msg, mh.atmosphere.GetBlockNumber())
 	if err != nil {
 		log.Warn(fmt.Sprintf("RegisterRemoveExpiredHashlockTransfer err %s", err))
 		/*
@@ -255,9 +255,9 @@ func (mh *photonMessageHandler) messageRemoveExpiredHashlockTransfer(msg *encodi
 		*/
 		return err
 	}
-	mh.photon.updateChannelAndSaveAck(ch, msg.Tag())
+	mh.atmosphere.updateChannelAndSaveAck(ch, msg.Tag())
 	// submit balance proof to pathfinder
-	go mh.photon.submitBalanceProofToPfs(ch)
+	go mh.atmosphere.submitBalanceProofToPfs(ch)
 	return nil
 }
 
@@ -289,11 +289,11 @@ func (mh *photonMessageHandler) messageRemoveExpiredHashlockTransfer(msg *encodi
  *	2. As to MediatedStateManager, there is no atomic operation between EventSendMediatedTransfer and EventSendAnnounceDisposedResponse.
  */
 func (mh *photonMessageHandler) messageAnnounceDisposed(msg *encoding.AnnounceDisposed) (err error) {
-	graph := mh.photon.getChannelGraph(msg.ChannelIdentifier)
+	graph := mh.atmosphere.getChannelGraph(msg.ChannelIdentifier)
 	if graph == nil {
 		return fmt.Errorf("unkonwn channel %s", msg.ChannelIdentifier.String())
 	}
-	if !graph.HasChannel(mh.photon.NodeAddress, msg.Sender) {
+	if !graph.HasChannel(mh.atmosphere.NodeAddress, msg.Sender) {
 		err = fmt.Errorf("direct transfer from node without an existing channel: %s", msg.Sender)
 		return
 	}
@@ -306,7 +306,7 @@ func (mh *photonMessageHandler) messageAnnounceDisposed(msg *encoding.AnnounceDi
 		return
 	}
 	punish := models.NewReceivedAnnounceDisposed(msg.Lock.Hash(), msg.ChannelIdentifier, msg.GetAdditionalHash(), msg.OpenBlockNumber, msg.Signature)
-	err = mh.photon.db.MarkLockHashCanPunish(punish)
+	err = mh.atmosphere.db.MarkLockHashCanPunish(punish)
 	if err != nil {
 		err = fmt.Errorf("MarkLockHashCanPunish %s err %s", utils.StringInterface(punish, 2), err)
 		return
@@ -317,8 +317,8 @@ func (mh *photonMessageHandler) messageAnnounceDisposed(msg *encoding.AnnounceDi
 		Lock:    msg.Lock,
 		Message: msg,
 	}
-	mh.photon.StateMachineEventHandler.dispatchBySecretHash(msg.Lock.LockSecretHash, stateChange)
-	mh.photon.db.UpdateTransferStatusMessage(ch.TokenAddress, msg.Lock.LockSecretHash, fmt.Sprintf("收到AnnounceDisposed from=%s", utils.APex2(msg.Sender)))
+	mh.atmosphere.StateMachineEventHandler.dispatchBySecretHash(msg.Lock.LockSecretHash, stateChange)
+	mh.atmosphere.db.UpdateTransferStatusMessage(ch.TokenAddress, msg.Lock.LockSecretHash, fmt.Sprintf("收到AnnounceDisposed from=%s", utils.APex2(msg.Sender)))
 	return nil
 }
 
@@ -344,11 +344,11 @@ func (mh *photonMessageHandler) messageAnnounceDisposed(msg *encoding.AnnounceDi
  *	Reasonable to update payment channel and store ACK.
  */
 func (mh *photonMessageHandler) messageAnnounceDisposedResponse(msg *encoding.AnnounceDisposedResponse) (err error) {
-	graph := mh.photon.getChannelGraph(msg.ChannelIdentifier)
+	graph := mh.atmosphere.getChannelGraph(msg.ChannelIdentifier)
 	if graph == nil {
 		return fmt.Errorf("unkonwn channel %s", msg.ChannelIdentifier.String())
 	}
-	if !graph.HasChannel(mh.photon.NodeAddress, msg.Sender) {
+	if !graph.HasChannel(mh.atmosphere.NodeAddress, msg.Sender) {
 		err = fmt.Errorf("direct transfer from node without an existing channel: %s", msg.Sender)
 		return
 	}
@@ -360,19 +360,19 @@ func (mh *photonMessageHandler) messageAnnounceDisposedResponse(msg *encoding.An
 		必须验证我确实发送过这个Dispose
 	*/
 	// must check that I actually send this Dispose
-	b := mh.photon.db.IsLockSecretHashChannelIdentifierDisposed(msg.LockSecretHash, msg.ChannelIdentifier)
+	b := mh.atmosphere.db.IsLockSecretHashChannelIdentifierDisposed(msg.LockSecretHash, msg.ChannelIdentifier)
 	if !b {
 		return fmt.Errorf("maybe a attack, receive a announce disposed response,but i never send announce disposed,msg=%s", msg)
 	}
-	err = ch.RegisterTransfer(mh.photon.GetBlockNumber(), msg)
+	err = ch.RegisterTransfer(mh.atmosphere.GetBlockNumber(), msg)
 	if err != nil {
 		return
 	}
 	//保存通道状态即可.
 	// Just store channel state.
-	mh.photon.updateChannelAndSaveAck(ch, msg.Tag())
+	mh.atmosphere.updateChannelAndSaveAck(ch, msg.Tag())
 	// submit balance proof to pathfinder
-	go mh.photon.submitBalanceProofToPfs(ch)
+	go mh.atmosphere.submitBalanceProofToPfs(ch)
 	return nil
 }
 
@@ -389,12 +389,12 @@ func (mh *photonMessageHandler) messageAnnounceDisposedResponse(msg *encoding.An
 func (mh *photonMessageHandler) messageDirectTransfer(msg *encoding.DirectTransfer) error {
 	// 用户调用了prepare-update,暂停接收新交易
 	// halt new transfer because clients invoke prepare-update
-	if mh.photon.StopCreateNewTransfers {
+	if mh.atmosphere.StopCreateNewTransfers {
 		return rerr.ErrStopCreateNewTransfer
 	}
 	//mh.balanceProof(msg)
-	graph := mh.photon.getChannelGraph(msg.ChannelIdentifier)
-	token := mh.photon.getTokenForChannelIdentifier(msg.ChannelIdentifier)
+	graph := mh.atmosphere.getChannelGraph(msg.ChannelIdentifier)
+	token := mh.atmosphere.getTokenForChannelIdentifier(msg.ChannelIdentifier)
 	if graph == nil {
 		return fmt.Errorf("unknown channel %s", utils.HPex(msg.ChannelIdentifier))
 	}
@@ -410,7 +410,7 @@ func (mh *photonMessageHandler) messageDirectTransfer(msg *encoding.DirectTransf
 	}
 	var amount = new(big.Int)
 	amount = amount.Sub(msg.TransferAmount, ch.PartnerState.TransferAmount())
-	err := ch.RegisterTransfer(mh.photon.GetBlockNumber(), msg)
+	err := ch.RegisterTransfer(mh.atmosphere.GetBlockNumber(), msg)
 	if err != nil {
 		log.Error(fmt.Sprintf("RegisterTransfer error %s\n", msg))
 		return err
@@ -420,10 +420,10 @@ func (mh *photonMessageHandler) messageDirectTransfer(msg *encoding.DirectTransf
 		Initiator:         msg.Sender,
 		ChannelIdentifier: msg.ChannelIdentifier,
 	}
-	mh.photon.updateChannelAndSaveAck(ch, msg.Tag())
-	err = mh.photon.StateMachineEventHandler.OnEvent(receiveSuccess, nil)
+	mh.atmosphere.updateChannelAndSaveAck(ch, msg.Tag())
+	err = mh.atmosphere.StateMachineEventHandler.OnEvent(receiveSuccess, nil)
 	// submit balance proof to pathfinder
-	go mh.photon.submitBalanceProofToPfs(ch)
+	go mh.atmosphere.submitBalanceProofToPfs(ch)
 	return err
 }
 
@@ -454,11 +454,11 @@ todo 需要设计如何保存 token swap 相关数据,并在崩溃恢复以后�
 func (mh *photonMessageHandler) messageMediatedTransfer(msg *encoding.MediatedTransfer) error {
 	// 用户调用了prepare-update,暂停接收新交易
 	// Clients inovke prepare-update, stop receiving new transfers.
-	if mh.photon.StopCreateNewTransfers {
+	if mh.atmosphere.StopCreateNewTransfers {
 		return rerr.ErrStopCreateNewTransfer
 	}
-	token := mh.photon.getTokenForChannelIdentifier(msg.ChannelIdentifier)
-	if mh.photon.Config.IgnoreMediatedNodeRequest && msg.Target != mh.photon.NodeAddress {
+	token := mh.atmosphere.getTokenForChannelIdentifier(msg.ChannelIdentifier)
+	if mh.atmosphere.Config.IgnoreMediatedNodeRequest && msg.Target != mh.atmosphere.NodeAddress {
 		//todo what about return a AnnounceDisposed Message ?
 		/*
 			需要考虑恶意攻击的情况,比如发送一个我已经知道密码,但是尚未 unlock 的锁
@@ -466,13 +466,13 @@ func (mh *photonMessageHandler) messageMediatedTransfer(msg *encoding.MediatedTr
 		// We need to consider cases with potential attack risks, such as sending a lock that I know the secret but not yet unlock.
 		return fmt.Errorf("ignored mh mediated transfer, because i don't want to route ")
 	}
-	if mh.photon.Config.IsMeshNetwork {
+	if mh.atmosphere.Config.IsMeshNetwork {
 		return fmt.Errorf("deny any mediated transfer when there is no internet connection")
 	}
 	if _, ok := mh.blockedTokens[token]; ok {
 		return rerr.ErrTransferUnwanted
 	}
-	graph := mh.photon.getToken2ChannelGraph(token)
+	graph := mh.atmosphere.getToken2ChannelGraph(token)
 	if graph == nil {
 		return fmt.Errorf("received transfer on unkown token :%s", utils.APex2(token))
 	}
@@ -483,7 +483,7 @@ func (mh *photonMessageHandler) messageMediatedTransfer(msg *encoding.MediatedTr
 	if !ch.CanTransfer() {
 		return rerr.TransferWhenClosed(fmt.Sprintf("Mediated transfer received but the channel is  can not accept any transfer %s", ch.ChannelIdentifier.String()))
 	}
-	err := ch.RegisterTransfer(mh.photon.GetBlockNumber(), msg)
+	err := ch.RegisterTransfer(mh.atmosphere.GetBlockNumber(), msg)
 	if err != nil {
 		return err
 	}
@@ -500,7 +500,7 @@ func (mh *photonMessageHandler) messageMediatedTransfer(msg *encoding.MediatedTr
 		Signature           string
 	}{
 		SearchKey:           "dataForDebug",
-		TokenNetworkAddress: mh.photon.Config.RegistryAddress.String(),
+		TokenNetworkAddress: mh.atmosphere.Config.TokenNetworkAddress.String(),
 		PartnerAddress:      msg.Sender.String(),
 		TransferAmount:      msg.TransferAmount.Int64(),
 		Expiration:          msg.Expiration,
@@ -513,10 +513,10 @@ func (mh *photonMessageHandler) messageMediatedTransfer(msg *encoding.MediatedTr
 	buf, err := json.MarshalIndent(dataForDebug, "", "\t")
 	log.Trace(string(buf))
 	//mh.updateChannelAndSaveAck(ch, msg.Tag())
-	if msg.Target == mh.photon.NodeAddress {
-		mh.photon.targetMediatedTransfer(msg, ch)
+	if msg.Target == mh.atmosphere.NodeAddress {
+		mh.atmosphere.targetMediatedTransfer(msg, ch)
 	} else {
-		mh.photon.mediateMediatedTransfer(msg, ch)
+		mh.atmosphere.mediateMediatedTransfer(msg, ch)
 	}
 	/*
 		start  taker's tokenswap ,only if receive a valid mediated transfer
@@ -526,10 +526,10 @@ func (mh *photonMessageHandler) messageMediatedTransfer(msg *encoding.MediatedTr
 		FromToken:      token,
 		FromAmount:     msg.PaymentAmount.String(),
 	}
-	if tokenswap, ok := mh.photon.SwapKey2TokenSwap[key]; ok {
-		remove := mh.photon.messageTokenSwapTaker(msg, tokenswap)
+	if tokenswap, ok := mh.atmosphere.SwapKey2TokenSwap[key]; ok {
+		remove := mh.atmosphere.messageTokenSwapTaker(msg, tokenswap)
 		if remove { //once the swap start,remove mh key immediately. otherwise,maker may repeat mh tokenswap operation.
-			delete(mh.photon.SwapKey2TokenSwap, key)
+			delete(mh.atmosphere.SwapKey2TokenSwap, key)
 		}
 		//return nil
 	}
@@ -550,8 +550,8 @@ func (mh *photonMessageHandler) messageMediatedTransfer(msg *encoding.MediatedTr
  * 	Directly update channel states and store ACK.
  */
 func (mh *photonMessageHandler) messageSettleRequest(msg *encoding.SettleRequest) error {
-	graph := mh.photon.getChannelGraph(msg.ChannelIdentifier)
-	token := mh.photon.getTokenForChannelIdentifier(msg.ChannelIdentifier)
+	graph := mh.atmosphere.getChannelGraph(msg.ChannelIdentifier)
+	token := mh.atmosphere.getTokenForChannelIdentifier(msg.ChannelIdentifier)
 	if graph == nil {
 		return fmt.Errorf("unknown channel %s", utils.HPex(msg.ChannelIdentifier))
 	}
@@ -589,20 +589,20 @@ func (mh *photonMessageHandler) messageSettleRequest(msg *encoding.SettleRequest
 	//	}()
 	//	return nil
 	//}
-	err = settleResponse.Sign(mh.photon.PrivateKey, settleResponse)
+	err = settleResponse.Sign(mh.atmosphere.PrivateKey, settleResponse)
 	if err != nil {
 		panic(fmt.Sprintf("sign message for settle response err %s", err))
 	}
-	err = mh.photon.sendAsync(msg.Sender, settleResponse)
+	err = mh.atmosphere.sendAsync(msg.Sender, settleResponse)
 	if err != nil {
 		log.Error(fmt.Sprintf("send message %s, to %s ,err %s", settleResponse, msg.Sender, err))
 	}
-	mh.photon.updateChannelAndSaveAck(ch, msg.Tag())
+	mh.atmosphere.updateChannelAndSaveAck(ch, msg.Tag())
 	return nil
 }
 func (mh *photonMessageHandler) messageSettleResponse(msg *encoding.SettleResponse) error {
-	graph := mh.photon.getChannelGraph(msg.ChannelIdentifier)
-	token := mh.photon.getTokenForChannelIdentifier(msg.ChannelIdentifier)
+	graph := mh.atmosphere.getChannelGraph(msg.ChannelIdentifier)
+	token := mh.atmosphere.getTokenForChannelIdentifier(msg.ChannelIdentifier)
 	if graph == nil {
 		return fmt.Errorf("unknown channel %s", utils.HPex(msg.ChannelIdentifier))
 	}
@@ -630,20 +630,20 @@ func (mh *photonMessageHandler) messageSettleResponse(msg *encoding.SettleRespon
 		log.Error(fmt.Sprintf("RegisterCooperativeSettleResponse error %s\n", err))
 		return err
 	}
-	mh.photon.updateChannelAndSaveAck(ch, msg.Tag())
+	mh.atmosphere.updateChannelAndSaveAck(ch, msg.Tag())
 	result := ch.CooperativeSettleChannel(msg)
 	go func() {
 		err = <-result.Result
 		if err != nil {
 			log.Error(fmt.Sprintf("CooperativeSettleChannel %s failed, so we can only close/settle this channel, err = %s", utils.HPex(msg.ChannelIdentifier), err.Error()))
-			mh.photon.NotifyHandler.Notify(notify.LevelWarn, fmt.Sprintf("CooperateSettle通道失败,建议强制close/settle通道,ChannelIdentifier=%s", msg.ChannelIdentifier.String()))
+			mh.atmosphere.NotifyHandler.Notify(notify.LevelWarn, fmt.Sprintf("CooperateSettle通道失败,建议强制close/settle通道,ChannelIdentifier=%s", msg.ChannelIdentifier.String()))
 		}
 	}()
 	return nil
 }
 func (mh *photonMessageHandler) messageWithdrawRequest(msg *encoding.WithdrawRequest) error {
-	graph := mh.photon.getChannelGraph(msg.ChannelIdentifier)
-	token := mh.photon.getTokenForChannelIdentifier(msg.ChannelIdentifier)
+	graph := mh.atmosphere.getChannelGraph(msg.ChannelIdentifier)
+	token := mh.atmosphere.getTokenForChannelIdentifier(msg.ChannelIdentifier)
 	if graph == nil {
 		return fmt.Errorf("unknown channel %s", utils.HPex(msg.ChannelIdentifier))
 	}
@@ -684,20 +684,20 @@ func (mh *photonMessageHandler) messageWithdrawRequest(msg *encoding.WithdrawReq
 	//	}()
 	//	return nil
 	//}
-	err = withdrawResponse.Sign(mh.photon.PrivateKey, withdrawResponse)
+	err = withdrawResponse.Sign(mh.atmosphere.PrivateKey, withdrawResponse)
 	if err != nil {
 		panic(fmt.Sprintf("sign message for withdraw response err %s", err))
 	}
-	err = mh.photon.sendAsync(msg.Sender, withdrawResponse)
+	err = mh.atmosphere.sendAsync(msg.Sender, withdrawResponse)
 	if err != nil {
 		log.Error(fmt.Sprintf("send message %s, to %s ,err %s", withdrawResponse, msg.Sender, err))
 	}
-	mh.photon.updateChannelAndSaveAck(ch, msg.Tag())
+	mh.atmosphere.updateChannelAndSaveAck(ch, msg.Tag())
 	return nil
 }
 func (mh *photonMessageHandler) messageWithdrawResponse(msg *encoding.WithdrawResponse) error {
-	graph := mh.photon.getChannelGraph(msg.ChannelIdentifier)
-	token := mh.photon.getTokenForChannelIdentifier(msg.ChannelIdentifier)
+	graph := mh.atmosphere.getChannelGraph(msg.ChannelIdentifier)
+	token := mh.atmosphere.getTokenForChannelIdentifier(msg.ChannelIdentifier)
 	if graph == nil {
 		return fmt.Errorf("unknown channel %s", utils.HPex(msg.ChannelIdentifier))
 	}
@@ -717,7 +717,7 @@ func (mh *photonMessageHandler) messageWithdrawResponse(msg *encoding.WithdrawRe
 		log.Error(fmt.Sprintf("RegisterTransfer error %s\n", msg))
 		return err
 	}
-	mh.photon.updateChannelAndSaveAck(ch, msg.Tag())
+	mh.atmosphere.updateChannelAndSaveAck(ch, msg.Tag())
 	//如果碰巧崩溃了,如果失败了,都只能回到 close/settle 这种老办法.
 	// If crash happens, or register fails, we should revert to close/settle mode.
 	result := ch.Withdraw(msg)

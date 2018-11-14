@@ -60,17 +60,17 @@ func TestToken(t *testing.T) {
 	}
 	var am = make(AddressMap)
 	t1 := utils.NewRandomAddress()
-	am[t1] = utils.NewRandomAddress()
+	am[t1] = true
 	model.RegisterNewTokenCallback(funcb)
-	err = model.AddToken(t1, am[t1])
+	err = model.AddToken(t1)
 	if err != nil {
 		t.Error(err)
 	}
 	am2, _ := model.GetAllTokens()
 	assert.EqualValues(t, am, am2)
 	t2 := utils.NewRandomAddress()
-	am[t2] = utils.NewRandomAddress()
-	err = model.AddToken(t2, am[t2])
+	am[t2] = true
+	err = model.AddToken(t2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -116,8 +116,8 @@ func TestGob(t *testing.T) {
 func TestGobAddressMap(t *testing.T) {
 	am := make(AddressMap)
 	k1 := utils.NewRandomAddress()
-	am[k1] = utils.NewRandomAddress()
-	am[utils.NewRandomAddress()] = utils.NewRandomAddress()
+	am[k1] = true
+	am[utils.NewRandomAddress()] = true
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(am)

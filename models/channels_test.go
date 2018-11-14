@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/SmartMeshFoundation/Atmosphere/channel/channeltype"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
+	"github.com/SmartMeshFoundation/Atmosphere/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"

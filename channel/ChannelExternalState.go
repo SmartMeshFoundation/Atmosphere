@@ -9,10 +9,10 @@ import (
 	"crypto/ecdsa"
 
 	"github.com/SmartMeshFoundation/Atmosphere/channel/channeltype"
+	"github.com/SmartMeshFoundation/Atmosphere/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/log"
 	"github.com/SmartMeshFoundation/Atmosphere/network/helper"
 	"github.com/SmartMeshFoundation/Atmosphere/network/rpc"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/transfer"
 	"github.com/SmartMeshFoundation/Atmosphere/transfer/mtree"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
@@ -79,7 +79,7 @@ func (e *ExternalState) SetSettled(blocknumber int64) bool {
 
 //Close call close function of smart contract
 //todo fix somany duplicate codes
-func (e *ExternalState) Close(balanceProof *transfer.BalanceProofState) (result *utils.AsyncResult) {
+func (e *ExternalState) Close(tokenAddress common.Address, balanceProof *transfer.BalanceProofState) (result *utils.AsyncResult) {
 	if e.ClosedBlock != 0 {
 		result = utils.NewAsyncResult()
 		result.Result <- fmt.Errorf("%s already closed,closeBlock=%d", utils.HPex(e.ChannelIdentifier.ChannelIdentifier), e.ClosedBlock)
@@ -100,12 +100,12 @@ func (e *ExternalState) Close(balanceProof *transfer.BalanceProofState) (result 
 		MessageHash = balanceProof.MessageHash
 		Signature = balanceProof.Signature
 	}
-	result = e.TokenNetwork.CloseChannelAsync(e.PartnerAddress, TransferAmount, LocksRoot, Nonce, MessageHash, Signature)
+	result = e.TokenNetwork.CloseChannelAsync(tokenAddress, e.PartnerAddress, TransferAmount, LocksRoot, Nonce, MessageHash, Signature)
 	return
 }
 
 //UpdateTransfer call updateTransfer of contract
-func (e *ExternalState) UpdateTransfer(bp *transfer.BalanceProofState) (result *utils.AsyncResult) {
+func (e *ExternalState) UpdateTransfer(tokenAddress common.Address, bp *transfer.BalanceProofState) (result *utils.AsyncResult) {
 	if bp == nil {
 		result = utils.NewAsyncResult()
 		result.Result <- errors.New("bp is nil")
@@ -113,7 +113,7 @@ func (e *ExternalState) UpdateTransfer(bp *transfer.BalanceProofState) (result *
 	}
 	log.Info(fmt.Sprintf("UpdateTransfer %s called ,BalanceProofState=%s",
 		utils.HPex(e.ChannelIdentifier.ChannelIdentifier), utils.StringInterface(bp, 3)))
-	result = e.TokenNetwork.UpdateBalanceProofAsync(e.PartnerAddress, bp.TransferAmount, bp.LocksRoot, bp.Nonce, bp.MessageHash, bp.Signature)
+	result = e.TokenNetwork.UpdateBalanceProofAsync(tokenAddress, e.PartnerAddress, bp.TransferAmount, bp.LocksRoot, bp.Nonce, bp.MessageHash, bp.Signature)
 	return
 }
 
@@ -126,7 +126,7 @@ Unlock call withdraw function of contract
  *
  *	Note that caller has to ensure that there aren't locks that claimed abandoned by him contained.
  */
-func (e *ExternalState) Unlock(unlockproofs []*channeltype.UnlockProof, argTransferdAmount *big.Int) (result *utils.AsyncResult) {
+func (e *ExternalState) Unlock(tokenAddress common.Address, unlockproofs []*channeltype.UnlockProof, argTransferdAmount *big.Int) (result *utils.AsyncResult) {
 	result = utils.NewAsyncResult()
 	transferAmount := new(big.Int).Set(argTransferdAmount)
 	go func() {
@@ -137,7 +137,7 @@ func (e *ExternalState) Unlock(unlockproofs []*channeltype.UnlockProof, argTrans
 				log.Info(fmt.Sprintf("Unlock secret has been used %s  %s", e.ChannelIdentifier.String(), utils.HPex(proof.Lock.LockSecretHash)))
 				continue
 			}
-			err := e.TokenNetwork.Unlock(e.PartnerAddress, transferAmount, proof.Lock, mtree.Proof2Bytes(proof.MerkleProof))
+			err := e.TokenNetwork.Unlock(tokenAddress, e.PartnerAddress, transferAmount, proof.Lock, mtree.Proof2Bytes(proof.MerkleProof))
 			if err != nil {
 				failed = true
 			} else {
@@ -164,7 +164,7 @@ func (e *ExternalState) Unlock(unlockproofs []*channeltype.UnlockProof, argTrans
 }
 
 //Settle call settle function of contract
-func (e *ExternalState) Settle(MyTransferAmount, PartnerTransferAmount *big.Int, MyLocksroot, PartnerLocksroot common.Hash) (result *utils.AsyncResult) {
+func (e *ExternalState) Settle(tokenAddress common.Address, MyTransferAmount, PartnerTransferAmount *big.Int, MyLocksroot, PartnerLocksroot common.Hash) (result *utils.AsyncResult) {
 	if e.SettledBlock != 0 {
 		result = utils.NewAsyncResult()
 		result.Result <- fmt.Errorf("channel %s already settled", e.ChannelIdentifier.String())
@@ -174,7 +174,7 @@ func (e *ExternalState) Settle(MyTransferAmount, PartnerTransferAmount *big.Int,
 		e.ChannelIdentifier.String(), MyTransferAmount, PartnerTransferAmount,
 		utils.HPex(MyLocksroot), utils.HPex(PartnerLocksroot),
 	))
-	result = e.TokenNetwork.SettleChannelAsync(e.MyAddress, e.PartnerAddress,
+	result = e.TokenNetwork.SettleChannelAsync(tokenAddress, e.MyAddress, e.PartnerAddress,
 		MyTransferAmount, PartnerTransferAmount,
 		MyLocksroot, PartnerLocksroot,
 	)
@@ -183,7 +183,7 @@ func (e *ExternalState) Settle(MyTransferAmount, PartnerTransferAmount *big.Int,
 
 //Deposit call deposit of contract
 func (e *ExternalState) Deposit(tokenAddress common.Address, amount *big.Int) (result *utils.AsyncResult) {
-	result = e.TokenNetwork.DepositAsync(e.MyAddress, e.PartnerAddress, amount)
+	result = e.TokenNetwork.DepositAsync(tokenAddress, e.MyAddress, e.PartnerAddress, amount, 0)
 	return
 }
 
@@ -193,8 +193,8 @@ PunishObsoleteUnlock 惩罚对手 unlock 一个声明放弃了的锁.
 /*
  *	PunishObsoleteUnlock : function to punishment channel participant who unlocks a transfer lock that has been claimed abandoned.
  */
-func (e *ExternalState) PunishObsoleteUnlock(lockhash, additionalHash common.Hash, cheaterSignature []byte) (result *utils.AsyncResult) {
+func (e *ExternalState) PunishObsoleteUnlock(tokenAddress common.Address, lockhash, additionalHash common.Hash, cheaterSignature []byte) (result *utils.AsyncResult) {
 	log.Info(fmt.Sprintf("PunishObsoleteUnlock called %s", e.ChannelIdentifier.String()))
-	result = e.TokenNetwork.PunishObsoleteUnlockAsync(e.MyAddress, e.PartnerAddress, lockhash, additionalHash, cheaterSignature)
+	result = e.TokenNetwork.PunishObsoleteUnlockAsync(tokenAddress, e.MyAddress, e.PartnerAddress, lockhash, additionalHash, cheaterSignature)
 	return
 }

@@ -70,7 +70,7 @@ func Transfers(w rest.ResponseWriter, r *rest.Request) {
 	}()
 	// 用户调用了prepare-update,暂停接收新交易
 	// client invokes prepare-update, halts receiving new transfers.
-	if API.Photon.StopCreateNewTransfers {
+	if API.Atmosphere.StopCreateNewTransfers {
 		rest.Error(w, "Stop create new transfers, please restart atmosphere", http.StatusBadRequest)
 		return
 	}
@@ -112,7 +112,7 @@ func Transfers(w rest.ResponseWriter, r *rest.Request) {
 	}
 	var result *utils.AsyncResult
 	if req.Sync {
-		result, err = API.Transfer(tokenAddr, req.Amount, req.Fee, targetAddr, common.HexToHash(req.Secret), params.MaxRequestTimeout, req.IsDirect)
+		result, err = API.Transfer(tokenAddr, req.Amount, req.Fee, targetAddr, common.HexToHash(req.Secret), params.DefaultMaxRequestTimeout, req.IsDirect)
 	} else {
 		result, err = API.TransferAsync(tokenAddr, req.Amount, req.Fee, targetAddr, common.HexToHash(req.Secret), req.IsDirect)
 	}
@@ -124,7 +124,7 @@ func Transfers(w rest.ResponseWriter, r *rest.Request) {
 	if req.Fee.Cmp(utils.BigInt0) == 0 {
 		req.Fee = nil
 	}
-	req.Initiator = API.Photon.NodeAddress.String()
+	req.Initiator = API.Atmosphere.NodeAddress.String()
 	req.Target = target
 	req.Token = token
 	req.LockSecretHash = result.LockSecretHash.String()
@@ -146,7 +146,7 @@ func GetTransferStatus(w rest.ResponseWriter, r *rest.Request) {
 		return
 	}
 
-	ts, err := API.Photon.GetDb().GetTransferStatus(tokenAddr, lockSecretHash)
+	ts, err := API.Atmosphere.GetDb().GetTransferStatus(tokenAddr, lockSecretHash)
 	if err != nil {
 		rest.Error(w, err.Error(), http.StatusConflict)
 		return

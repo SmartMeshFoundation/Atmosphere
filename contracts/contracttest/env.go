@@ -10,7 +10,7 @@ import (
 	"math/big"
 
 	"github.com/SmartMeshFoundation/Atmosphere/accounts"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
+	"github.com/SmartMeshFoundation/Atmosphere/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -24,12 +24,11 @@ import (
 type Env struct {
 	KeystorePath          string
 	EthRPCEndpoint        string
-	Token                 *contracts.Token
 	TokenAddress          common.Address
+	Token                 *contracts.Token
 	TokenNetworkAddress   common.Address
-	Client                *ethclient.Client
-	TokenNetworkRegistry  *contracts.TokenNetworkRegistry
 	TokenNetwork          *contracts.TokenNetwork
+	Client                *ethclient.Client
 	SecretRegistryAddress common.Address
 	SecretRegistry        *contracts.SecretRegistry
 	Accounts              []*Account
@@ -94,12 +93,6 @@ func InitEnv(t *testing.T, configFilePath string) {
 		}
 	}
 	t.Logf("TokenNetwork = %s", tokenNetworkAddress)
-	// get token network registry
-	tokenNetworkRegistryAddress := common.HexToAddress(c.RdString("COMMON", "token_network_registry_address", "new"))
-	env.TokenNetworkRegistry, err = contracts.NewTokenNetworkRegistry(tokenNetworkRegistryAddress, env.Client)
-	if err != nil {
-		panic(err)
-	}
 	// init accounts, keys and auths
 	initAccounts(t, env)
 	t.Log("=======================================> env init done, test BEGIN ...")

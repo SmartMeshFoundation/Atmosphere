@@ -19,7 +19,7 @@ import (
 
 var errXMPPConnectionNotReady = errors.New("xmpp connection not ready")
 
-//XMPPTransport use XMPP to comminucate with other Photon nodes
+//XMPPTransport use XMPP to comminucate with other Atmosphere nodes
 type XMPPTransport struct {
 	conn          *xmpptransport.XMPPConnection
 	quitChan      chan struct{}

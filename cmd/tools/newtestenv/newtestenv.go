@@ -6,7 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 
-	"github.com/SmartMeshFoundation/Photon/network/helper"
+	"github.com/SmartMeshFoundation/Atmosphere/network/helper"
 
 	"context"
 
@@ -22,14 +22,14 @@ import (
 
 	"time"
 
-	"github.com/SmartMeshFoundation/Photon/accounts"
-	"github.com/SmartMeshFoundation/Photon/cmd/tools/newtestenv/createchannel"
-	"github.com/SmartMeshFoundation/Photon/network/rpc/contracts"
-	"github.com/SmartMeshFoundation/Photon/network/rpc/contracts/test/tokens/tokenerc223"
-	"github.com/SmartMeshFoundation/Photon/network/rpc/contracts/test/tokens/tokenerc223approve"
-	"github.com/SmartMeshFoundation/Photon/network/rpc/contracts/test/tokens/tokenether"
-	"github.com/SmartMeshFoundation/Photon/network/rpc/contracts/test/tokens/tokenstandard"
-	"github.com/SmartMeshFoundation/Photon/utils"
+	"github.com/SmartMeshFoundation/Atmosphere/accounts"
+	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/newtestenv/createchannel"
+	"github.com/SmartMeshFoundation/Atmosphere/contracts"
+	"github.com/SmartMeshFoundation/Atmosphere/contracts/test/tokens/tokenerc223"
+	"github.com/SmartMeshFoundation/Atmosphere/contracts/test/tokens/tokenerc223approve"
+	"github.com/SmartMeshFoundation/Atmosphere/contracts/test/tokens/tokenether"
+	"github.com/SmartMeshFoundation/Atmosphere/contracts/test/tokens/tokenstandard"
+	"github.com/SmartMeshFoundation/Atmosphere/utils"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -37,7 +37,7 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
-var globalPassword = "111111"
+var passwords = []string{"123", "111111", "123456"}
 
 const (
 	tokenERC223   = "erc223"
@@ -60,7 +60,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "address",
-			Usage: "The ethereum address you would like atmosphere to use and for which a keystore file exists in your local system.",
+			Usage: "The ethereum address you would like photon to use and for which a keystore file exists in your local system.",
 		},
 		cli.StringFlag{
 			Name:  "keystore-path",
@@ -112,7 +112,7 @@ func mainctx(ctx *cli.Context) error {
 	fmt.Printf("not-create-channel=%v\n", ctx.Bool("not-create-channel"))
 	fmt.Printf("not-create-token=%v\n", ctx.Bool("not-create-token"))
 	base = ctx.Int("base")
-	globalPassword = ctx.String("password")
+	passwords[0] = ctx.String("password")
 	tokenNumber := ctx.Int("tokennum")
 	//if tokenNumber <= 0 || tokenNumber > 4 {
 	//	log.Fatalf("tokenum must be between 1-4")
@@ -125,14 +125,21 @@ func mainctx(ctx *cli.Context) error {
 
 	_, key := promptAccount(ctx.String("keystore-path"))
 	fmt.Println("start to deploy ...")
-	registryAddress := deployContract(key, conn)
+	tokenNetworkAddress := deployContract(key, conn)
+	//registryAddress := common.HexToAddress("0xDe661C5aDaF15c243475C5c6BA96634983821593")
 	if ctx.Bool("not-create-token") {
 		return nil
 	}
-	registry, err := contracts.NewTokenNetworkRegistry(registryAddress, conn)
+	tokenNetwork, err := contracts.NewTokenNetwork(tokenNetworkAddress, conn)
 	if err != nil {
 		return err
 	}
+	secretRegistryAddress, err := tokenNetwork.SecretRegistry(nil)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("secretRegistryAddress=%s\n", secretRegistryAddress.String())
+
 	wg := sync.WaitGroup{}
 	wg.Add(tokenNumber)
 	lock := &sync.Mutex{}
@@ -140,22 +147,22 @@ func mainctx(ctx *cli.Context) error {
 		switch i {
 		case 0:
 			go func() {
-				createTokenAndChannels(key, conn, registry, ctx.String("keystore-path"), !ctx.Bool("not-create-channel"), tokenERC223Approve, lock)
+				createTokenAndChannels(key, conn, tokenNetworkAddress, tokenNetwork, ctx.String("keystore-path"), !ctx.Bool("not-create-channel"), tokenERC223Approve, lock)
 				wg.Done()
 			}()
 		case 3:
 			go func() {
-				createTokenAndChannels(key, conn, registry, ctx.String("keystore-path"), !ctx.Bool("not-create-channel"), tokenERC223, lock)
+				createTokenAndChannels(key, conn, tokenNetworkAddress, tokenNetwork, ctx.String("keystore-path"), !ctx.Bool("not-create-channel"), tokenERC223, lock)
 				wg.Done()
 			}()
 		case 2:
 			go func() {
-				createTokenAndChannels(key, conn, registry, ctx.String("keystore-path"), !ctx.Bool("not-create-channel"), tokenStandard, lock)
+				createTokenAndChannels(key, conn, tokenNetworkAddress, tokenNetwork, ctx.String("keystore-path"), !ctx.Bool("not-create-channel"), tokenStandard, lock)
 				wg.Done()
 			}()
 		case 1:
 			go func() {
-				createTokenAndChannels(key, conn, registry, ctx.String("keystore-path"), !ctx.Bool("not-create-channel"), tokenERC223, lock)
+				createTokenAndChannels(key, conn, tokenNetworkAddress, tokenNetwork, ctx.String("keystore-path"), !ctx.Bool("not-create-channel"), tokenERC223, lock)
 				wg.Done()
 			}()
 		}
@@ -174,7 +181,7 @@ func promptAccount(keystorePath string) (addr common.Address, key *ecdsa.Private
 	log.Printf("accounts=%q", am.Accounts)
 	for i := 0; i < 3; i++ {
 		//fmt.Printf("\npassword is %s\n", password)
-		keybin, err := am.GetPrivateKey(addr, globalPassword)
+		keybin, err := am.GetPrivateKey(addr, passwords[0])
 		if err != nil && i == 3 {
 			log.Fatal(fmt.Sprintf("Exhausted passphrase unlock attempts for %s. Aborting ...", addr))
 			os.Exit(1)
@@ -191,47 +198,35 @@ func promptAccount(keystorePath string) (addr common.Address, key *ecdsa.Private
 	}
 	return
 }
-func deployContract(key *ecdsa.PrivateKey, conn *helper.SafeEthClient) (tokenNetworkRegistryAddress common.Address) {
+func deployContract(key *ecdsa.PrivateKey, conn *helper.SafeEthClient) (tokenNetworkAddress common.Address) {
 	chainID, err := conn.NetworkID(context.Background())
 	if err != nil {
 		log.Fatalf("failed get chain id :%s", chainID)
 	}
 	fmt.Printf("current chain Id=%s\n", chainID)
 	auth := bind.NewKeyedTransactor(key)
-	//Deploy SecretRegistry
-	SecretRegistryAddress, tx, _, err := contracts.DeploySecretRegistry(auth, conn)
+	//Deploy TokenNetorkRegistry
+	//auth.GasLimit = 4000000 //最大gas
+	//auth.GasPrice = big.NewInt(2000)
+	tokenNetworkAddress, tx, _, err := contracts.DeployTokenNetwork(auth, conn, chainID)
 	if err != nil {
-		log.Fatalf("Failed to Deploy SecretRegistry : %v", err)
+		log.Fatalf("Failed to deploy new token contract: %v", err)
 	}
+	fmt.Printf("tokenNetworkAddress=%s, txhash=%s\n", tokenNetworkAddress.String(), tx.Hash().String())
 	ctx := context.Background()
 	_, err = bind.WaitDeployed(ctx, conn, tx)
 	if err != nil {
 		log.Fatalf("failed to deploy contact when mining :%v", err)
 	}
-	fmt.Printf("deploy SecretRegistry[%s] complete...\n", SecretRegistryAddress.String())
-	//Deploy TokenNetorkRegistry
-	//auth.GasLimit = 4000000 //最大gas
-	//auth.GasPrice = big.NewInt(2000)
-	tokenNetworkRegistryAddress, tx, _, err = contracts.DeployTokenNetworkRegistry(auth, conn, SecretRegistryAddress, chainID)
-	if err != nil {
-		log.Fatalf("Failed to deploy new token contract: %v", err)
-	}
-	fmt.Printf("tokenNetworkRegistryAddress=%s, txhash=%s\n", tokenNetworkRegistryAddress.String(), tx.Hash().String())
-	ctx = context.Background()
-	_, err = bind.WaitDeployed(ctx, conn, tx)
-	if err != nil {
-		log.Fatalf("failed to deploy contact when mining :%v", err)
-	}
-	fmt.Printf("Deploy tokenNetworkRegistry complete...\n")
+	fmt.Printf("Deploy tokenNetworkAddress complete...\n")
 
-	fmt.Printf("tokenNetworkRegistryAddress=%s\n", tokenNetworkRegistryAddress.String())
+	fmt.Printf("tokenNetworkAddress=%s\n", tokenNetworkAddress.String())
 	return
 }
-func createTokenAndChannels(key *ecdsa.PrivateKey, conn *helper.SafeEthClient, registry *contracts.TokenNetworkRegistry, keystorepath string, createchannel bool, tokenType string, lock *sync.Mutex) {
+
+func createTokenAndChannels(key *ecdsa.PrivateKey, conn *helper.SafeEthClient, tokenNetworkAddress common.Address, tokenNetwork *contracts.TokenNetwork, keystorepath string, createchannel bool, tokenType string, lock *sync.Mutex) {
 	lock.Lock()
-	tokenNetworkAddress, tokenAddress := newToken(key, conn, registry, tokenType)
-	//tokenAddress := common.HexToAddress("0xD29A9Cbf2Ca88981D0794ce94e68495c4bC16F28")
-	//tokenNetworkAddress, _ := registry.Token_to_token_networks(nil, tokenAddress)
+	tokenAddress := newToken(key, conn, tokenType)
 	token, err := contracts.NewToken(tokenAddress, conn)
 	if err != nil {
 		log.Fatalf("err for newtoken err %s", err)
@@ -240,7 +235,16 @@ func createTokenAndChannels(key *ecdsa.PrivateKey, conn *helper.SafeEthClient, r
 	var localAccounts []common.Address
 	var keys []*ecdsa.PrivateKey
 	for _, account := range am.Accounts {
-		keybin, err := am.GetPrivateKey(account.Address, globalPassword)
+		var keybin []byte
+		for _, p := range passwords {
+			keybin, err = am.GetPrivateKey(account.Address, p)
+			if err != nil {
+				log.Printf("password error for %s,err=%s", utils.APex2(account.Address), err)
+				continue
+			} else {
+				break
+			}
+		}
 		if err != nil {
 			log.Printf("password error for %s,err=%s", utils.APex2(account.Address), err)
 			continue
@@ -259,48 +263,34 @@ func createTokenAndChannels(key *ecdsa.PrivateKey, conn *helper.SafeEthClient, r
 	//fmt.Printf("key=%s\n", key)
 	transferMoneyForAccounts(key, conn, localAccounts[1:], keys[1:], token)
 	if createchannel {
-		createChannels(conn.Client, localAccounts, keys, tokenNetworkAddress, token)
+		createChannels(conn.Client, localAccounts, keys, tokenNetworkAddress, tokenNetwork, tokenAddress, token)
 	}
 }
 
-func newToken(key *ecdsa.PrivateKey, conn *helper.SafeEthClient, registry *contracts.TokenNetworkRegistry, tokenType string) (tokenNetworkAddress common.Address, tokenAddr common.Address) {
+func newToken(key *ecdsa.PrivateKey, conn *helper.SafeEthClient, tokenType string) (tokenAddr common.Address) {
 	var tx *types.Transaction
 	var err error
 	auth := bind.NewKeyedTransactor(key)
 	switch tokenType {
 	case tokenERC223:
-		tokenAddr, tx, _, err = tokenerc223.DeployHumanERC223Token(auth, conn, getAmount(big.NewInt(500000000000000000)), "test erc223", uint8(base))
+		tokenAddr, tx, _, err = tokenerc223.DeployHumanERC223Token(auth, conn, getAmount(big.NewInt(5000000000000000000)), "test erc223", uint8(base))
 	case tokenStandard:
-		tokenAddr, tx, _, err = tokenstandard.DeployHumanStandardToken(auth, conn, getAmount(big.NewInt(500000000000000000)), "test standard", uint8(base))
+		tokenAddr, tx, _, err = tokenstandard.DeployHumanStandardToken(auth, conn, getAmount(big.NewInt(5000000000000000000)), "test standard", uint8(base))
 	case tokenERC223Approve:
-		tokenAddr, tx, _, err = tokenerc223approve.DeployHumanERC223Token(auth, conn, getAmount(big.NewInt(500000000000000000)), "test erc223 approve", uint8(base))
+		tokenAddr, tx, _, err = tokenerc223approve.DeployHumanERC223Token(auth, conn, getAmount(big.NewInt(5000000000000000000)), "test erc223 approve", uint8(base))
 	case tokenEther:
-		auth.Value = getAmount(big.NewInt(500000000000000000))
+		auth.Value = getAmount(big.NewInt(5000000000000000000))
 		tokenAddr, tx, _, err = tokenether.DeployHumanEtherToken(auth, conn, "test ether")
 	}
 	if err != nil {
 		log.Fatalf("Failed to deploy %s: %v,account=%s", tokenType, err, auth.From.String())
 	}
-	fmt.Printf("token deploy tx=%s\n", tx.Hash().String())
+	fmt.Printf("token deploy type=%s, tokenAddress=%s\n", tokenType, tokenAddr.String())
 	ctx := context.Background()
 	_, err = bind.WaitDeployed(ctx, conn, tx)
 	if err != nil {
 		log.Fatalf("failed to deploy contact when mining :%v", err)
 	}
-	auth.Value = nil // ether will modify auth
-	fmt.Printf("Deploy %s  %s complete...\n", tokenType, tokenAddr.String())
-	tx, err = registry.CreateERC20TokenNetwork(auth, tokenAddr)
-	if err != nil {
-		log.Fatalf("Failed to AddToken: %v", err)
-	}
-	log.Printf("CreateERC20TokenNetwork tx=%s", tx.Hash().String())
-	ctx = context.Background()
-	_, err = bind.WaitMined(ctx, conn, tx)
-	if err != nil {
-		log.Fatalf("failed to AddToken when mining :%v", err)
-	}
-	tokenNetworkAddress, err = registry.TokenToTokenNetworks(nil, tokenAddr)
-	fmt.Printf("Deploy %s complete... %s,tokennetwork=%s\n", tokenType, tokenAddr.String(), tokenNetworkAddress.String())
 	return
 }
 func transferMoneyForAccounts(key *ecdsa.PrivateKey, conn *helper.SafeEthClient, accounts []common.Address, keys []*ecdsa.PrivateKey, token *contracts.Token) {
@@ -356,7 +346,7 @@ func transferMoneyForAccounts(key *ecdsa.PrivateKey, conn *helper.SafeEthClient,
 }
 
 //path A-B-C-F-B-D-G-E
-func createChannels(conn *ethclient.Client, accounts []common.Address, keys []*ecdsa.PrivateKey, tokenNetworkAddress common.Address, token *contracts.Token) {
+func createChannels(conn *ethclient.Client, accounts []common.Address, keys []*ecdsa.PrivateKey, tokenNetworkAddress common.Address, tokenNetwork *contracts.TokenNetwork, tokenAddress common.Address, token *contracts.Token) {
 	if len(accounts) < 6 {
 		panic("need 6 accounts")
 	}
@@ -381,35 +371,35 @@ func createChannels(conn *ethclient.Client, accounts []common.Address, keys []*e
 	wg.Add(8)
 	//fmt.Printf("keya=%s,keyb=%s,keyc=%s,keyd=%s,keye=%s,keyf=%s,keyg=%s\n", keyA, keyB, keyC, keyD, keyE, keyF, keyG)
 	go func() {
-		createchannel.CreatAChannelAndDeposit(AccountA, AccountB, keyA, keyB, getAmount(big.NewInt(100)), tokenNetworkAddress, token, conn)
+		createchannel.CreatAChannelAndDeposit(AccountA, AccountB, keyA, keyB, getAmount(big.NewInt(100)), tokenNetworkAddress, tokenNetwork, tokenAddress, token, conn)
 		wg.Done()
 	}()
 	go func() {
-		createchannel.CreatAChannelAndDeposit(AccountB, AccountD, keyB, keyD, getAmount(big.NewInt(90)), tokenNetworkAddress, token, conn)
+		createchannel.CreatAChannelAndDeposit(AccountB, AccountD, keyB, keyD, getAmount(big.NewInt(90)), tokenNetworkAddress, tokenNetwork, tokenAddress, token, conn)
 		wg.Done()
 	}()
 	go func() {
-		createchannel.CreatAChannelAndDeposit(AccountG, AccountE, keyG, keyE, getAmount(big.NewInt(80)), tokenNetworkAddress, token, conn)
+		createchannel.CreatAChannelAndDeposit(AccountG, AccountE, keyG, keyE, getAmount(big.NewInt(80)), tokenNetworkAddress, tokenNetwork, tokenAddress, token, conn)
 		wg.Done()
 	}()
 	go func() {
-		createchannel.CreatAChannelAndDeposit(AccountD, AccountG, keyD, keyG, getAmount(big.NewInt(190)), tokenNetworkAddress, token, conn)
+		createchannel.CreatAChannelAndDeposit(AccountD, AccountG, keyD, keyG, getAmount(big.NewInt(190)), tokenNetworkAddress, tokenNetwork, tokenAddress, token, conn)
 		wg.Done()
 	}()
 	go func() {
-		createchannel.CreatAChannelAndDeposit(AccountC, AccountE, keyC, keyE, getAmount(big.NewInt(10)), tokenNetworkAddress, token, conn)
+		createchannel.CreatAChannelAndDeposit(AccountC, AccountE, keyC, keyE, getAmount(big.NewInt(10)), tokenNetworkAddress, tokenNetwork, tokenAddress, token, conn)
 		wg.Done()
 	}()
 	go func() {
-		createchannel.CreatAChannelAndDeposit(AccountC, AccountF, keyC, keyF, getAmount(big.NewInt(60)), tokenNetworkAddress, token, conn)
+		createchannel.CreatAChannelAndDeposit(AccountC, AccountF, keyC, keyF, getAmount(big.NewInt(60)), tokenNetworkAddress, tokenNetwork, tokenAddress, token, conn)
 		wg.Done()
 	}()
 	go func() {
-		createchannel.CreatAChannelAndDeposit(AccountB, AccountF, keyB, keyF, getAmount(big.NewInt(70)), tokenNetworkAddress, token, conn)
+		createchannel.CreatAChannelAndDeposit(AccountB, AccountF, keyB, keyF, getAmount(big.NewInt(70)), tokenNetworkAddress, tokenNetwork, tokenAddress, token, conn)
 		wg.Done()
 	}()
 	go func() {
-		createchannel.CreatAChannelAndDeposit(AccountB, AccountC, keyB, keyC, getAmount(big.NewInt(50)), tokenNetworkAddress, token, conn)
+		createchannel.CreatAChannelAndDeposit(AccountB, AccountC, keyB, keyC, getAmount(big.NewInt(50)), tokenNetworkAddress, tokenNetwork, tokenAddress, token, conn)
 		wg.Done()
 	}()
 
@@ -419,7 +409,7 @@ func createChannels(conn *ethclient.Client, accounts []common.Address, keys []*e
 	for i := 6; i < len(accounts)-1; i++ {
 		go func(index int) {
 			createchannel.CreatAChannelAndDeposit(accounts[index], accounts[index+1], keys[index], keys[index+1],
-				getAmount(big.NewInt(100)), tokenNetworkAddress, token, conn,
+				getAmount(big.NewInt(100)), tokenNetworkAddress, tokenNetwork, tokenAddress, token, conn,
 			)
 			wg.Done()
 		}(i)

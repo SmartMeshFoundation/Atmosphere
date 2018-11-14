@@ -156,7 +156,7 @@ func handleBalanceProof(state *mediatedtransfer.TargetState, st *mediatedtransfe
 }
 
 /*
-After Photon learns about a new block this function must be called to
+After Atmosphere learns about a new block this function must be called to
     handle expiration of the hash time lock.
 */
 func handleBlock(state *mediatedtransfer.TargetState, st *transfer.BlockStateChange) (it *transfer.TransitionResult) {

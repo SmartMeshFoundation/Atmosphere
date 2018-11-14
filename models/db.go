@@ -139,18 +139,18 @@ func (model *ModelDB) CloseDB() {
 	model.lock.Unlock()
 }
 
-//SaveRegistryAddress save registry address to db
-func (model *ModelDB) SaveRegistryAddress(registryAddress common.Address) {
-	err := model.db.Set(bucketMeta, "registry", registryAddress)
+//SaveTokenNetworkAddress save registry address to db
+func (model *ModelDB) SaveTokenNetworkAddress(registryAddress common.Address) {
+	err := model.db.Set(bucketMeta, "tokennetwork", registryAddress)
 	if err != nil {
 		log.Error(fmt.Sprintf("db err %s", err))
 	}
 }
 
-//GetRegistryAddress returns registry address in db
-func (model *ModelDB) GetRegistryAddress() common.Address {
+//GetTokenNetworkAddress returns registry address in db
+func (model *ModelDB) GetTokenNetworkAddress() common.Address {
 	var registry common.Address
-	err := model.db.Get(bucketMeta, "registry", &registry)
+	err := model.db.Get(bucketMeta, "tokennetwork", &registry)
 	if err != nil && err != storm.ErrNotFound {
 		log.Error(fmt.Sprintf("db err %s", err))
 	}

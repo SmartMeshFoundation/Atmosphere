@@ -31,8 +31,8 @@ func TokenSwap(w rest.ResponseWriter, r *rest.Request) {
 	*/
 	// 用户调用了prepare-update,暂停接收新交易
 	// client invokes prepare-update, halts receiving new transfers
-	if API.Photon.StopCreateNewTransfers {
-		rest.Error(w, "Stop create new transfers, please restart Photon", http.StatusBadRequest)
+	if API.Atmosphere.StopCreateNewTransfers {
+		rest.Error(w, "Stop create new transfers, please restart Atmosphere", http.StatusBadRequest)
 		return
 	}
 	type Req struct {
@@ -87,10 +87,10 @@ func TokenSwap(w rest.ResponseWriter, r *rest.Request) {
 			return
 		}
 		err = API.TokenSwapAndWait(lockSecretHash, makerToken, takerToken,
-			API.Photon.NodeAddress, target, req.SendingAmount, req.ReceivingAmount, req.Secret)
+			API.Atmosphere.NodeAddress, target, req.SendingAmount, req.ReceivingAmount, req.Secret)
 	} else if req.Role == "taker" {
 		err = API.ExpectTokenSwap(lockSecretHash, takerToken, makerToken,
-			target, API.Photon.NodeAddress, req.ReceivingAmount, req.SendingAmount)
+			target, API.Atmosphere.NodeAddress, req.ReceivingAmount, req.SendingAmount)
 	} else {
 		err = fmt.Errorf("Provided invalid token swap role %s", req.Role)
 	}

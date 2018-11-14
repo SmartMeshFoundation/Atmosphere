@@ -39,22 +39,22 @@ var errEthConnectionNotReady = errors.New("eth connection not ready")
 //API atmosphere for user
 /* #nolint */
 type API struct {
-	Photon *Service
+	Atmosphere *Service
 }
 
-//NewPhotonAPI create CLI interface.
-func NewPhotonAPI(photon *Service) *API {
-	return &API{Photon: photon}
+//NewAtmosphereAPI create CLI interface.
+func NewAtmosphereAPI(atmosphere *Service) *API {
+	return &API{Atmosphere: atmosphere}
 }
 
 //Address return this node's address
 func (r *API) Address() common.Address {
-	return r.Photon.NodeAddress
+	return r.Atmosphere.NodeAddress
 }
 
 //Tokens Return a list of the tokens registered with the default registry.
 func (r *API) Tokens() (addresses []common.Address) {
-	tokens, err := r.Photon.db.GetAllTokens()
+	tokens, err := r.Atmosphere.db.GetAllTokens()
 	if err != nil {
 		log.Error(fmt.Sprintf("GetAllTokens err %s", err))
 		return
@@ -80,49 +80,12 @@ Args:
             KeyError: An error occurred when the token address is unknown to the node.
 */
 func (r *API) GetChannelList(tokenAddress common.Address, partnerAddress common.Address) (cs []*channeltype.Serialization, err error) {
-	return r.Photon.db.GetChannelList(tokenAddress, partnerAddress)
+	return r.Atmosphere.db.GetChannelList(tokenAddress, partnerAddress)
 }
 
 //GetChannel get channel by address
 func (r *API) GetChannel(ChannelIdentifier common.Hash) (c *channeltype.Serialization, err error) {
-	return r.Photon.db.GetChannelByAddress(ChannelIdentifier)
-}
-
-/*
-TokenAddressIfTokenRegistered return the channel manager address,If the token is registered then
-Also make sure that the channel manager is registered with the node.
-*/
-func (r *API) TokenAddressIfTokenRegistered(tokenAddress common.Address) (mgrAddr common.Address, err error) {
-	if r.Photon.Chain.RegistryProxy == nil {
-		err = errEthConnectionNotReady
-		return
-	}
-	mgrAddr, err = r.Photon.Chain.RegistryProxy.TokenNetworkByToken(tokenAddress)
-	if err != nil {
-		return
-	}
-	return
-}
-
-/*
-RegisterToken Will register the token at `token_address` with atmosphere. If it's already
-    registered, will throw an exception.
-*/
-func (r *API) RegisterToken(tokenAddress common.Address) (tokenNetworkAddress common.Address, err error) {
-	if r.Photon.Chain.RegistryProxy == nil {
-		err = errEthConnectionNotReady
-		return
-	}
-	tokenNetworkAddress, err = r.Photon.Chain.RegistryProxy.TokenNetworkByToken(tokenAddress)
-	if err == nil && tokenNetworkAddress != utils.EmptyAddress {
-		err = errors.New("TokenNetworkAddres already registered")
-		return
-	}
-	//for non exist tokenaddress, ChannelManagerByToken will return a error: `abi : unmarshalling empty output`
-	if err == rerr.ErrNoTokenManager {
-		return r.Photon.Chain.RegistryProxy.AddToken(tokenAddress)
-	}
-	return
+	return r.Atmosphere.db.GetChannelByAddress(ChannelIdentifier)
 }
 
 /*
@@ -131,10 +94,10 @@ Open a channel with the peer at `partner_address`
 */
 func (r *API) Open(tokenAddress, partnerAddress common.Address, settleTimeout, revealTimeout int, deposit *big.Int) (ch *channeltype.Serialization, err error) {
 	if revealTimeout <= 0 {
-		revealTimeout = r.Photon.Config.RevealTimeout
+		revealTimeout = r.Atmosphere.Config.RevealTimeout
 	}
 	if settleTimeout <= 0 {
-		settleTimeout = r.Photon.Config.SettleTimeout
+		settleTimeout = r.Atmosphere.Config.SettleTimeout
 	}
 	if settleTimeout <= revealTimeout {
 		err = rerr.ErrInvalidSettleTimeout
@@ -142,21 +105,21 @@ func (r *API) Open(tokenAddress, partnerAddress common.Address, settleTimeout, r
 	}
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	r.Photon.db.RegisterNewChannellCallback(func(c *channeltype.Serialization) (remove bool) {
+	r.Atmosphere.db.RegisterNewChannellCallback(func(c *channeltype.Serialization) (remove bool) {
 		if c.TokenAddress() == tokenAddress && c.PartnerAddress() == partnerAddress {
 			wg.Done()
 			return true
 		}
 		return false
 	})
-	result := r.Photon.newChannelClient(tokenAddress, partnerAddress, settleTimeout, deposit)
+	result := r.Atmosphere.newChannelClient(tokenAddress, partnerAddress, settleTimeout, deposit)
 	err = <-result.Result
 	if err != nil {
 		return
 	}
 	//wait
 	wg.Wait()
-	ch, err = r.Photon.db.GetChannel(tokenAddress, partnerAddress)
+	ch, err = r.Atmosphere.db.GetChannel(tokenAddress, partnerAddress)
 	if err == nil {
 		//must be success, no need to wait event and register a callback
 		if deposit != nil {
@@ -185,16 +148,16 @@ Deposit `amount` in the channel with the peer at `partner_address` and the
         AddressWithoutCode: The channel was settled during the deposit
         execution.
 */
-func (r *API) Deposit(tokenAddress, partnerAddress common.Address, amount *big.Int, pollTimeout time.Duration) (c *channeltype.Serialization, err error) {
-	c, err = r.Photon.db.GetChannel(tokenAddress, partnerAddress)
+func (r *API) Deposit(tokenAddress, partnerAddress common.Address, amount *big.Int) (c *channeltype.Serialization, err error) {
+	c, err = r.Atmosphere.db.GetChannel(tokenAddress, partnerAddress)
 	if err != nil {
 		return
 	}
-	token, err := r.Photon.Chain.Token(tokenAddress)
+	token, err := r.Atmosphere.Chain.NewTokenProxy(tokenAddress)
 	if err != nil {
 		return
 	}
-	balance, err := token.BalanceOf(r.Photon.NodeAddress)
+	balance, err := token.BalanceOf(r.Atmosphere.NodeAddress)
 	if err != nil {
 		return
 	}
@@ -203,7 +166,7 @@ func (r *API) Deposit(tokenAddress, partnerAddress common.Address, amount *big.I
 		     transactions that can race, e.g. the deposit check succeed but the
 		     user spent his balance before deposit.
 	*/
-	if balance.Cmp(amount) < 0 {
+	if balance.Cmp(amount) <= 0 {
 		err = fmt.Errorf("not enough balance to deposit. %s Available=%d Tried=%d", tokenAddress.String(), balance, amount)
 		log.Error(err.Error())
 		err = rerr.ErrInsufficientFunds
@@ -211,7 +174,7 @@ func (r *API) Deposit(tokenAddress, partnerAddress common.Address, amount *big.I
 	}
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	r.Photon.db.RegisterChannelDepositCallback(func(c2 *channeltype.Serialization) (remove bool) {
+	r.Atmosphere.db.RegisterChannelDepositCallback(func(c2 *channeltype.Serialization) (remove bool) {
 		if bytes.Equal(c2.Key, c.Key) {
 			wg.Done()
 			return true
@@ -219,7 +182,7 @@ func (r *API) Deposit(tokenAddress, partnerAddress common.Address, amount *big.I
 		return false
 	})
 	//deposit move ... todo
-	result := r.Photon.depositChannelClient(c.ChannelIdentifier.ChannelIdentifier, amount)
+	result := r.Atmosphere.depositChannelClient(c.ChannelIdentifier.ChannelIdentifier, amount)
 	err = <-result.Result
 	if err != nil {
 		return
@@ -229,7 +192,7 @@ func (r *API) Deposit(tokenAddress, partnerAddress common.Address, amount *big.I
 	*/
 	wg.Wait()
 	//reload data from database,
-	return r.Photon.db.GetChannelByAddress(c.ChannelIdentifier.ChannelIdentifier)
+	return r.Atmosphere.db.GetChannelByAddress(c.ChannelIdentifier.ChannelIdentifier)
 }
 
 /*
@@ -251,12 +214,12 @@ func (r *API) TokenSwapAndWait(lockSecretHash string, makerToken, takerToken, ma
 
 func (r *API) tokenSwapAsync(lockSecretHash string, makerToken, takerToken, makerAddress, takerAddress common.Address,
 	makerAmount, takerAmount *big.Int, secret string) (result *utils.AsyncResult, err error) {
-	chs, err := r.Photon.db.GetChannelList(takerToken, utils.EmptyAddress)
+	chs, err := r.Atmosphere.db.GetChannelList(takerToken, utils.EmptyAddress)
 	if err != nil || len(chs) == 0 {
 		err = errors.New("unkown taker token")
 		return
 	}
-	chs, err = r.Photon.db.GetChannelList(makerToken, utils.EmptyAddress)
+	chs, err = r.Atmosphere.db.GetChannelList(makerToken, utils.EmptyAddress)
 	if err != nil || len(chs) == 0 {
 		err = errors.New("unkown maker token")
 		return
@@ -272,7 +235,7 @@ func (r *API) tokenSwapAsync(lockSecretHash string, makerToken, takerToken, make
 		ToAmount:        new(big.Int).Set(takerAmount),
 		ToNodeAddress:   takerAddress,
 	}
-	result = r.Photon.tokenSwapMakerClient(tokenSwap)
+	result = r.Atmosphere.tokenSwapMakerClient(tokenSwap)
 	return
 }
 
@@ -285,12 +248,12 @@ ExpectTokenSwap Register an expected transfer for this node.
 */
 func (r *API) ExpectTokenSwap(lockSecretHash string, makerToken, takerToken, makerAddress, takerAddress common.Address,
 	makerAmount, takerAmount *big.Int) (err error) {
-	chs, err := r.Photon.db.GetChannelList(takerToken, utils.EmptyAddress)
+	chs, err := r.Atmosphere.db.GetChannelList(takerToken, utils.EmptyAddress)
 	if err != nil || len(chs) == 0 {
 		err = errors.New("unkown taker token")
 		return
 	}
-	chs, err = r.Photon.db.GetChannelList(makerToken, utils.EmptyAddress)
+	chs, err = r.Atmosphere.db.GetChannelList(makerToken, utils.EmptyAddress)
 	if err != nil || len(chs) == 0 {
 		err = errors.New("unkown maker token")
 		return
@@ -304,24 +267,24 @@ func (r *API) ExpectTokenSwap(lockSecretHash string, makerToken, takerToken, mak
 		ToAmount:        new(big.Int).Set(takerAmount),
 		ToNodeAddress:   takerAddress,
 	}
-	r.Photon.tokenSwapTakerClient(tokenSwap)
+	r.Atmosphere.tokenSwapTakerClient(tokenSwap)
 	return nil
 }
 
 //GetNodeNetworkState Returns the currently network status of `node_address
 func (r *API) GetNodeNetworkState(nodeAddress common.Address) (deviceType string, isOnline bool) {
-	return r.Photon.Protocol.GetNetworkStatus(nodeAddress)
+	return r.Atmosphere.Protocol.GetNetworkStatus(nodeAddress)
 }
 
 //StartHealthCheckFor Returns the currently network status of `node_address`.
 func (r *API) StartHealthCheckFor(nodeAddress common.Address) (deviceType string, isOnline bool) {
-	r.Photon.startHealthCheckFor(nodeAddress)
+	r.Atmosphere.startHealthCheckFor(nodeAddress)
 	return r.GetNodeNetworkState(nodeAddress)
 }
 
 //GetTokenList returns all available tokens
 func (r *API) GetTokenList() (tokens []common.Address) {
-	tokensmap, err := r.Photon.db.GetAllTokens()
+	tokensmap, err := r.Atmosphere.db.GetAllTokens()
 	if err != nil {
 		log.Error(fmt.Sprintf("GetAllTokens err %s", err))
 	}
@@ -333,7 +296,7 @@ func (r *API) GetTokenList() (tokens []common.Address) {
 
 //GetTokenTokenNetorks return all tokens and token networks
 func (r *API) GetTokenTokenNetorks() (tokens []string) {
-	tokenMap, err := r.Photon.db.GetAllTokens()
+	tokenMap, err := r.Atmosphere.db.GetAllTokens()
 	if err != nil {
 		log.Error(fmt.Sprintf("GetAllTokens err %s", err))
 	}
@@ -393,7 +356,7 @@ func (r *API) TransferInternal(tokenAddress common.Address, amount *big.Int, fee
 	}
 	if isDirectTransfer {
 		var c *channeltype.Serialization
-		c, err = r.Photon.db.GetChannel(tokenAddress, target)
+		c, err = r.Atmosphere.db.GetChannel(tokenAddress, target)
 		if err != nil {
 			err = fmt.Errorf("no direct channel token:%s,partner:%s", tokenAddress.String(), target.String())
 			return
@@ -408,8 +371,8 @@ func (r *API) TransferInternal(tokenAddress common.Address, amount *big.Int, fee
 		return
 	}
 	log.Debug(fmt.Sprintf("initiating transfer initiator=%s target=%s token=%s amount=%d secret=%s",
-		r.Photon.NodeAddress.String(), target.String(), tokenAddress.String(), amount, secret.String()))
-	result = r.Photon.transferAsyncClient(tokenAddress, amount, fee, target, secret, isDirectTransfer)
+		r.Atmosphere.NodeAddress.String(), target.String(), tokenAddress.String(), amount, secret.String()))
+	result = r.Atmosphere.transferAsyncClient(tokenAddress, amount, fee, target, secret, isDirectTransfer)
 	return
 }
 
@@ -419,7 +382,7 @@ func (r *API) TransferInternal(tokenAddress common.Address, amount *big.Int, fee
 // 3. remove the predictor
 func (r *API) AllowRevealSecret(lockSecretHash common.Hash, tokenAddress common.Address) (err error) {
 	key := utils.Sha3(lockSecretHash[:], tokenAddress[:])
-	manager := r.Photon.Transfer2StateManager[key]
+	manager := r.Atmosphere.Transfer2StateManager[key]
 	if manager == nil {
 		return rerr.InvalidState("can not find transfer by lock_secret_hash and token_address")
 	}
@@ -430,7 +393,7 @@ func (r *API) AllowRevealSecret(lockSecretHash common.Hash, tokenAddress common.
 	if lockSecretHash != state.LockSecretHash || lockSecretHash != utils.ShaSecret(state.Secret.Bytes()) {
 		return rerr.InvalidState("wrong lock_secret_hash")
 	}
-	delete(r.Photon.SecretRequestPredictorMap, lockSecretHash)
+	delete(r.Atmosphere.SecretRequestPredictorMap, lockSecretHash)
 	log.Trace(fmt.Sprintf("Remove SecretRequestPredictor for lockSecretHash="))
 	return
 }
@@ -440,10 +403,10 @@ func (r *API) RegisterSecret(secret common.Hash, tokenAddress common.Address) (e
 	lockSecretHash := utils.ShaSecret(secret.Bytes())
 	//在channel 中注册密码
 	// register secret in channel
-	r.Photon.registerSecret(secret)
+	r.Atmosphere.registerSecret(secret)
 
 	key := utils.Sha3(lockSecretHash[:], tokenAddress[:])
-	manager := r.Photon.Transfer2StateManager[key]
+	manager := r.Atmosphere.Transfer2StateManager[key]
 	if manager == nil {
 		return rerr.InvalidState("can not find transfer by lock_secret_hash and token_address")
 	}
@@ -477,11 +440,11 @@ type TransferDataResponse struct {
 // GetUnfinishedReceivedTransfer :
 func (r *API) GetUnfinishedReceivedTransfer(lockSecretHash common.Hash, tokenAddress common.Address) (resp *TransferDataResponse) {
 
-	if r.Photon.SecretRequestPredictorMap[lockSecretHash] != nil {
+	if r.Atmosphere.SecretRequestPredictorMap[lockSecretHash] != nil {
 		return
 	}
 	key := utils.Sha3(lockSecretHash[:], tokenAddress[:])
-	manager := r.Photon.Transfer2StateManager[key]
+	manager := r.Atmosphere.Transfer2StateManager[key]
 	if manager == nil {
 		log.Warn(fmt.Sprintf("can not find transfer by lock_secret_hash[%s] and token_address[%s]", lockSecretHash.String(), tokenAddress.String()))
 		return
@@ -504,13 +467,13 @@ func (r *API) GetUnfinishedReceivedTransfer(lockSecretHash common.Hash, tokenAdd
 
 //Close a channel opened with `partner_address` for the given `token_address`. return when state has been updated to database
 func (r *API) Close(tokenAddress, partnerAddress common.Address) (c *channeltype.Serialization, err error) {
-	c, err = r.Photon.db.GetChannel(tokenAddress, partnerAddress)
+	c, err = r.Atmosphere.db.GetChannel(tokenAddress, partnerAddress)
 	if err != nil {
 		return
 	}
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	r.Photon.db.RegisterChannelStateCallback(func(c2 *channeltype.Serialization) (remove bool) {
+	r.Atmosphere.db.RegisterChannelStateCallback(func(c2 *channeltype.Serialization) (remove bool) {
 		log.Trace(fmt.Sprintf("wait %s closed ,get channle %s update",
 			c.ChannelIdentifier, c2.ChannelIdentifier))
 		if bytes.Equal(c2.Key, c.Key) {
@@ -520,26 +483,26 @@ func (r *API) Close(tokenAddress, partnerAddress common.Address) (c *channeltype
 		return false
 	})
 	//send close channel request
-	result := r.Photon.closeChannelClient(c.ChannelIdentifier.ChannelIdentifier)
+	result := r.Atmosphere.closeChannelClient(c.ChannelIdentifier.ChannelIdentifier)
 	err = <-result.Result
 	if err != nil {
 		return
 	}
 	wg.Wait()
 	//reload data from database,
-	return r.Photon.db.GetChannelByAddress(c.ChannelIdentifier.ChannelIdentifier)
+	return r.Atmosphere.db.GetChannelByAddress(c.ChannelIdentifier.ChannelIdentifier)
 }
 
 //Settle a closed channel with `partner_address` for the given `token_address`.return when state has been updated to database
 func (r *API) Settle(tokenAddress, partnerAddress common.Address) (c *channeltype.Serialization, err error) {
-	c, err = r.Photon.db.GetChannel(tokenAddress, partnerAddress)
+	c, err = r.Atmosphere.db.GetChannel(tokenAddress, partnerAddress)
 	if c.State == channeltype.StateOpened {
 		err = rerr.InvalidState("channel is still open")
 		return
 	}
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	r.Photon.db.RegisterChannelSettleCallback(func(c2 *channeltype.Serialization) (remove bool) {
+	r.Atmosphere.db.RegisterChannelSettleCallback(func(c2 *channeltype.Serialization) (remove bool) {
 		log.Trace(fmt.Sprintf("wait %s settled ,get channle %s update",
 			c.ChannelIdentifier, c2.ChannelIdentifier))
 		if bytes.Equal(c2.Key, c.Key) {
@@ -549,7 +512,7 @@ func (r *API) Settle(tokenAddress, partnerAddress common.Address) (c *channeltyp
 		return false
 	})
 	//send settle request
-	result := r.Photon.settleChannelClient(c.ChannelIdentifier.ChannelIdentifier)
+	result := r.Atmosphere.settleChannelClient(c.ChannelIdentifier.ChannelIdentifier)
 	err = <-result.Result
 	log.Trace(fmt.Sprintf("%s settled finish , err %v", c.ChannelIdentifier, err))
 	if err != nil {
@@ -557,66 +520,66 @@ func (r *API) Settle(tokenAddress, partnerAddress common.Address) (c *channeltyp
 	}
 	wg.Wait()
 	//reload data from database, this channel has been removed.
-	return r.Photon.db.GetSettledChannel(c.ChannelIdentifier.ChannelIdentifier, c.ChannelIdentifier.OpenBlockNumber)
+	return r.Atmosphere.db.GetSettledChannel(c.ChannelIdentifier.ChannelIdentifier, c.ChannelIdentifier.OpenBlockNumber)
 }
 
 //CooperativeSettle a channel opened with `partner_address` for the given `token_address`. return when state has been updated to database
 func (r *API) CooperativeSettle(tokenAddress, partnerAddress common.Address) (c *channeltype.Serialization, err error) {
-	c, err = r.Photon.db.GetChannel(tokenAddress, partnerAddress)
+	c, err = r.Atmosphere.db.GetChannel(tokenAddress, partnerAddress)
 	if c.State != channeltype.StateOpened && c.State != channeltype.StatePrepareForCooperativeSettle {
 		err = rerr.InvalidState("channel must be  open")
 		return
 	}
 	//send settle request
-	result := r.Photon.cooperativeSettleChannelClient(c.ChannelIdentifier.ChannelIdentifier)
+	result := r.Atmosphere.cooperativeSettleChannelClient(c.ChannelIdentifier.ChannelIdentifier)
 	err = <-result.Result
 	log.Trace(fmt.Sprintf("%s settled finish , err %v", c.ChannelIdentifier, err))
 	if err != nil {
 		return
 	}
 	//reload data from database, this channel has been removed.
-	return r.Photon.db.GetChannelByAddress(c.ChannelIdentifier.ChannelIdentifier)
+	return r.Atmosphere.db.GetChannelByAddress(c.ChannelIdentifier.ChannelIdentifier)
 }
 
 //PrepareForCooperativeSettle  mark a channel prepared for settle,  return when state has been updated to database
 func (r *API) PrepareForCooperativeSettle(tokenAddress, partnerAddress common.Address) (c *channeltype.Serialization, err error) {
-	c, err = r.Photon.db.GetChannel(tokenAddress, partnerAddress)
+	c, err = r.Atmosphere.db.GetChannel(tokenAddress, partnerAddress)
 	if c.State != channeltype.StateOpened {
 		err = rerr.InvalidState("channel must be  open")
 		return
 	}
 	//send settle request
-	result := r.Photon.markChannelForCooperativeSettleClient(c.ChannelIdentifier.ChannelIdentifier)
+	result := r.Atmosphere.markChannelForCooperativeSettleClient(c.ChannelIdentifier.ChannelIdentifier)
 	err = <-result.Result
 	log.Trace(fmt.Sprintf("%s PrepareForCooperativeSettle finish , err %v", c.ChannelIdentifier, err))
 	if err != nil {
 		return
 	}
 	//reload data from database, this channel has been removed.
-	return r.Photon.db.GetChannelByAddress(c.ChannelIdentifier.ChannelIdentifier)
+	return r.Atmosphere.db.GetChannelByAddress(c.ChannelIdentifier.ChannelIdentifier)
 }
 
 //CancelPrepareForCooperativeSettle  cancel a mark. return when state has been updated to database
 func (r *API) CancelPrepareForCooperativeSettle(tokenAddress, partnerAddress common.Address) (c *channeltype.Serialization, err error) {
-	c, err = r.Photon.db.GetChannel(tokenAddress, partnerAddress)
+	c, err = r.Atmosphere.db.GetChannel(tokenAddress, partnerAddress)
 	if c.State != channeltype.StatePrepareForCooperativeSettle {
 		err = rerr.InvalidState("channel must be  open")
 		return
 	}
 	//send settle request
-	result := r.Photon.cancelMarkChannelForCooperativeSettleClient(c.ChannelIdentifier.ChannelIdentifier)
+	result := r.Atmosphere.cancelMarkChannelForCooperativeSettleClient(c.ChannelIdentifier.ChannelIdentifier)
 	err = <-result.Result
 	log.Trace(fmt.Sprintf("%s CancelPrepareForCooperativeSettle finish , err %v", c.ChannelIdentifier, err))
 	if err != nil {
 		return
 	}
 	//reload data from database, this channel has been removed.
-	return r.Photon.db.GetChannelByAddress(c.ChannelIdentifier.ChannelIdentifier)
+	return r.Atmosphere.db.GetChannelByAddress(c.ChannelIdentifier.ChannelIdentifier)
 }
 
 //Withdraw on a channel opened with `partner_address` for the given `token_address`. return when state has been updated to database
 func (r *API) Withdraw(tokenAddress, partnerAddress common.Address, amount *big.Int) (c *channeltype.Serialization, err error) {
-	c, err = r.Photon.db.GetChannel(tokenAddress, partnerAddress)
+	c, err = r.Atmosphere.db.GetChannel(tokenAddress, partnerAddress)
 	if c.State != channeltype.StateOpened && c.State != channeltype.StatePrepareForWithdraw {
 		err = rerr.InvalidState("channel must be  open")
 		return
@@ -626,50 +589,50 @@ func (r *API) Withdraw(tokenAddress, partnerAddress common.Address, amount *big.
 		return
 	}
 	//send settle request
-	result := r.Photon.withdrawClient(c.ChannelIdentifier.ChannelIdentifier, amount)
+	result := r.Atmosphere.withdrawClient(c.ChannelIdentifier.ChannelIdentifier, amount)
 	err = <-result.Result
 	log.Trace(fmt.Sprintf("%s withdraw finish , err %v", c.ChannelIdentifier, err))
 	if err != nil {
 		return
 	}
 	//reload data from database, this channel has been removed.
-	return r.Photon.db.GetChannelByAddress(c.ChannelIdentifier.ChannelIdentifier)
+	return r.Atmosphere.db.GetChannelByAddress(c.ChannelIdentifier.ChannelIdentifier)
 }
 
 //PrepareForWithdraw  mark a channel prepared for withdraw,  return when state has been updated to database
 func (r *API) PrepareForWithdraw(tokenAddress, partnerAddress common.Address) (c *channeltype.Serialization, err error) {
-	c, err = r.Photon.db.GetChannel(tokenAddress, partnerAddress)
+	c, err = r.Atmosphere.db.GetChannel(tokenAddress, partnerAddress)
 	if c.State != channeltype.StateOpened {
 		err = rerr.InvalidState("channel must be  open")
 		return
 	}
 	//send settle request
-	result := r.Photon.markWithdraw(c.ChannelIdentifier.ChannelIdentifier)
+	result := r.Atmosphere.markWithdraw(c.ChannelIdentifier.ChannelIdentifier)
 	err = <-result.Result
 	log.Trace(fmt.Sprintf("%s PrepareForWithdraw finish , err %v", c.ChannelIdentifier, err))
 	if err != nil {
 		return
 	}
 	//reload data from database, this channel has been removed.
-	return r.Photon.db.GetChannelByAddress(c.ChannelIdentifier.ChannelIdentifier)
+	return r.Atmosphere.db.GetChannelByAddress(c.ChannelIdentifier.ChannelIdentifier)
 }
 
 //CancelPrepareForWithdraw  cancel a mark. return when state has been updated to database
 func (r *API) CancelPrepareForWithdraw(tokenAddress, partnerAddress common.Address) (c *channeltype.Serialization, err error) {
-	c, err = r.Photon.db.GetChannel(tokenAddress, partnerAddress)
+	c, err = r.Atmosphere.db.GetChannel(tokenAddress, partnerAddress)
 	if c.State != channeltype.StatePrepareForWithdraw {
 		err = rerr.InvalidState("channel must be  open")
 		return
 	}
 	//send settle request
-	result := r.Photon.cancelMarkWithdraw(c.ChannelIdentifier.ChannelIdentifier)
+	result := r.Atmosphere.cancelMarkWithdraw(c.ChannelIdentifier.ChannelIdentifier)
 	err = <-result.Result
 	log.Trace(fmt.Sprintf("%s CancelPrepareForWithdraw finish , err %v", c.ChannelIdentifier, err))
 	if err != nil {
 		return
 	}
 	//reload data from database, this channel has been removed.
-	return r.Photon.db.GetChannelByAddress(c.ChannelIdentifier.ChannelIdentifier)
+	return r.Atmosphere.db.GetChannelByAddress(c.ChannelIdentifier.ChannelIdentifier)
 }
 
 //GetTokenNetworkEvents return events about this token
@@ -691,13 +654,13 @@ func (r *API) GetTokenNetworkEvents(tokenAddress common.Address, fromBlock, toBl
 	//	Participant2   string `json:"participant2"`
 	//	TokenAddress   string `json:"token_address"`
 	//}
-	//tokens, err := r.Photon.db.GetAllTokens()
+	//tokens, err := r.Atmosphere.db.GetAllTokens()
 	//if err != nil {
 	//	return
 	//}
 	//for t, manager := range tokens {
 	//	if tokenAddress == utils.EmptyAddress || t == tokenAddress {
-	//		events, err := r.Photon.BlockChainEvents.GetAllChannelManagerEvents(manager, fromBlock, toBlock)
+	//		events, err := r.Atmosphere.BlockChainEvents.GetAllChannelManagerEvents(manager, fromBlock, toBlock)
 	//		if err != nil {
 	//			return nil, err
 	//		}
@@ -730,7 +693,7 @@ func (r *API) GetNetworkEvents(fromBlock, toBlock int64) ([]interface{}, error) 
 	//	TokenAddress          string `json:"token_address"`
 	//	ChannelManagerAddress string `json:"channel_manager_address"`
 	//}
-	//events, err := r.Photon.BlockChainEvents.GetAllRegistryEvents(r.Photon.RegistryAddress, fromBlock, toBlock)
+	//events, err := r.Atmosphere.BlockChainEvents.GetAllRegistryEvents(r.Atmosphere.RegistryAddress, fromBlock, toBlock)
 	//if err != nil {
 	//	return nil, err
 	//}
@@ -751,7 +714,7 @@ func (r *API) GetNetworkEvents(fromBlock, toBlock int64) ([]interface{}, error) 
 func (r *API) GetChannelEvents(channelIdentifier common.Hash, fromBlock, toBlock int64) (data []transfer.Event, err error) {
 
 	//var events []transfer.Event
-	//events, err = r.Photon.BlockChainEvents.GetAllNettingChannelEvents(channelIdentifier, fromBlock, toBlock)
+	//events, err = r.Atmosphere.BlockChainEvents.GetAllNettingChannelEvents(channelIdentifier, fromBlock, toBlock)
 	//if err != nil {
 	//	return
 	//}
@@ -788,7 +751,7 @@ func (r *API) GetChannelEvents(channelIdentifier common.Hash, fromBlock, toBlock
 	//}
 	//
 	//var photonEvents []*models.InternalEvent
-	//photonEvents, err = r.Photon.db.GetEventsInBlockRange(fromBlock, toBlock)
+	//photonEvents, err = r.Atmosphere.db.GetEventsInBlockRange(fromBlock, toBlock)
 	//if err != nil {
 	//	return
 	//}
@@ -825,20 +788,20 @@ func (r *API) GetChannelEvents(channelIdentifier common.Hash, fromBlock, toBlock
 GetSentTransfers query sent transfers from db
 */
 func (r *API) GetSentTransfers(from, to int64) ([]*models.SentTransfer, error) {
-	return r.Photon.db.GetSentTransferInBlockRange(from, to)
+	return r.Atmosphere.db.GetSentTransferInBlockRange(from, to)
 }
 
 /*
 GetReceivedTransfers query received transfers from db
 */
 func (r *API) GetReceivedTransfers(from, to int64) ([]*models.ReceivedTransfer, error) {
-	return r.Photon.db.GetReceivedTransferInBlockRange(from, to)
+	return r.Atmosphere.db.GetReceivedTransferInBlockRange(from, to)
 }
 
 //Stop stop for mobile app
 func (r *API) Stop() {
 	log.Info("calling api stop..")
-	r.Photon.Stop()
+	r.Atmosphere.Stop()
 	log.Info("stop successful..")
 }
 
@@ -891,7 +854,7 @@ func (r *API) ChannelInformationFor3rdParty(ChannelIdentifier common.Hash, third
 	c3 := new(ChannelFor3rd)
 	c3.ChannelIdentifier = ChannelIdentifier
 	c3.OpenBlockNumber = c.ChannelIdentifier.OpenBlockNumber
-	c3.TokenNetworkAddrss = r.Photon.Token2TokenNetwork[c.TokenAddress()]
+	c3.TokenNetworkAddrss = r.Atmosphere.Chain.GetTokenNetworkAddress()
 	c3.PartnerAddress = c.PartnerAddress()
 	if c.PartnerBalanceProof == nil {
 		result = c3
@@ -903,7 +866,7 @@ func (r *API) ChannelInformationFor3rdParty(ChannelIdentifier common.Hash, third
 		c3.UpdateTransfer.Locksroot = c.PartnerBalanceProof.LocksRoot
 		c3.UpdateTransfer.ExtraHash = c.PartnerBalanceProof.MessageHash
 		c3.UpdateTransfer.ClosingSignature = c.PartnerBalanceProof.Signature
-		sig, err = signBalanceProofFor3rd(c, r.Photon.PrivateKey)
+		sig, err = signBalanceProofFor3rd(c, r.Atmosphere.PrivateKey)
 		if err != nil {
 			return
 		}
@@ -919,13 +882,13 @@ func (r *API) ChannelInformationFor3rdParty(ChannelIdentifier common.Hash, third
 			Secret:      l.Secret,
 			MerkleProof: mtree.Proof2Bytes(proof.MerkleProof),
 		}
-		w.Signature, err = signUnlockFor3rd(c, w, thirdAddr, r.Photon.PrivateKey)
+		w.Signature, err = signUnlockFor3rd(c, w, thirdAddr, r.Atmosphere.PrivateKey)
 		//log.Trace(fmt.Sprintf("prootf=%s", utils.StringInterface(proof, 3)))
 		ws = append(ws, w)
 	}
 	c3.Unlocks = ws
 	var ps []*punish
-	for _, annouceDisposed := range r.Photon.db.GetChannelAnnounceDisposed(c.ChannelIdentifier.ChannelIdentifier) {
+	for _, annouceDisposed := range r.Atmosphere.db.GetChannelAnnounceDisposed(c.ChannelIdentifier.ChannelIdentifier) {
 		//跳过历史 channel
 		// omit history channel
 		if annouceDisposed.OpenBlockNumber != c.ChannelIdentifier.OpenBlockNumber {
@@ -1071,13 +1034,9 @@ func (r *API) getBalance() (balances []*AccountTokenBalanceVo, err error) {
 
 // ForceUnlock : only for debug
 func (r *API) ForceUnlock(channelIdentifier common.Hash, lockSecretHash common.Hash, secret common.Hash) (err error) {
-	channel := r.Photon.getChannelWithAddr(channelIdentifier)
+	channel := r.Atmosphere.getChannelWithAddr(channelIdentifier)
 	if channel == nil {
 		return fmt.Errorf("can not find channel %s", channelIdentifier.String())
-	}
-	tokenNetwork, err := r.Photon.Chain.TokenNetwork(r.Photon.Token2TokenNetwork[channel.TokenAddress])
-	if err != nil {
-		return
 	}
 	// 获取数据
 	lock := channel.PartnerState.Lock2PendingLocks[lockSecretHash]
@@ -1097,14 +1056,14 @@ func (r *API) ForceUnlock(channelIdentifier common.Hash, lockSecretHash common.H
 		// 自己close
 		fmt.Printf("ForceUnlock close : partnerAddress=%s, transferAmount=%d, locksroot=%s nonce=%d, addtionalHash=%s,signature=%s\n",
 			partnerAddress.String(), transferAmount, locksroot.String(), nonce, addtionalHash.String(), common.Bytes2Hex(signature))
-		err = tokenNetwork.CloseChannel(partnerAddress, transferAmount, locksroot, nonce, addtionalHash, signature)
+		err = r.Atmosphere.Chain.TokenNetworkProxy.CloseChannel(channel.TokenAddress, partnerAddress, transferAmount, locksroot, nonce, addtionalHash, signature)
 		if err != nil {
 			fmt.Printf("ForceUnlock : close channel fail %s\n", err.Error())
 			return
 		}
 	}
 	// register
-	err = r.Photon.Chain.SecretRegistryProxy.RegisterSecret(secret)
+	err = r.Atmosphere.Chain.SecretRegistryProxy.RegisterSecret(secret)
 	if err != nil {
 		fmt.Printf("ForceUnlock : register secret fail %s\n", err.Error())
 		return
@@ -1114,7 +1073,7 @@ func (r *API) ForceUnlock(channelIdentifier common.Hash, lockSecretHash common.H
 		partnerAddress.String(), transferAmount, lock.Lock.Expiration, lock.Lock.Amount, lock.Lock.LockSecretHash.String(), common.Bytes2Hex(mtree.Proof2Bytes(proof)),
 		lock.LockHash.String())
 
-	err = tokenNetwork.Unlock(partnerAddress, contractTransferAmout, lock.Lock, mtree.Proof2Bytes(proof))
+	err = r.Atmosphere.Chain.TokenNetworkProxy.Unlock(channel.TokenAddress, partnerAddress, contractTransferAmout, lock.Lock, mtree.Proof2Bytes(proof))
 	if err != nil {
 		fmt.Printf("ForceUnlock : unlock failed %s\n", err.Error())
 		return
@@ -1125,7 +1084,7 @@ func (r *API) ForceUnlock(channelIdentifier common.Hash, lockSecretHash common.H
 
 // CancelTransfer : cancel a transfer when haven't send secret
 func (r *API) CancelTransfer(lockSecretHash common.Hash, tokenAddress common.Address) error {
-	result := r.Photon.cancelTransferClient(lockSecretHash, tokenAddress)
+	result := r.Atmosphere.cancelTransferClient(lockSecretHash, tokenAddress)
 	return <-result.Result
 }
 
@@ -1176,21 +1135,21 @@ func (r *API) BalanceProofForPFS(channelIdentifier common.Hash) (proof *ProofFor
 	_, err = buf.Write(bpf.Signature)
 	_, err = buf.Write(utils.BigIntTo32Bytes(proof.LockAmount))
 	dataToSign := buf.Bytes()
-	proof.Signature, err = utils.SignData(r.Photon.PrivateKey, dataToSign)
+	proof.Signature, err = utils.SignData(r.Atmosphere.PrivateKey, dataToSign)
 	return
 }
 
 // NotifyNetworkDown :
 func (r *API) NotifyNetworkDown() error {
 	// smc client
-	client := r.Photon.Chain.Client
+	client := r.Atmosphere.Chain.Client
 	if client.IsConnected() {
-		//r.Photon.BlockChainEvents.Stop()
+		//r.Atmosphere.BlockChainEvents.Stop()
 		client.Client.Close()
 	}
 
 	// xmpp client
-	if t, ok := r.Photon.Protocol.Transport.(*network.MixTransport); ok {
+	if t, ok := r.Atmosphere.Protocol.Transport.(*network.MixTransport); ok {
 		t.Reconnect()
 	}
 	return nil
@@ -1198,7 +1157,7 @@ func (r *API) NotifyNetworkDown() error {
 
 // GetFeePolicy :
 func (r *API) GetFeePolicy() (fp *models.FeePolicy, err error) {
-	feeModule, ok := r.Photon.FeePolicy.(*FeeModule)
+	feeModule, ok := r.Atmosphere.FeePolicy.(*FeeModule)
 	if !ok {
 		return
 	}
@@ -1207,7 +1166,7 @@ func (r *API) GetFeePolicy() (fp *models.FeePolicy, err error) {
 
 // SetFeePolicy :
 func (r *API) SetFeePolicy(fp *models.FeePolicy) error {
-	feeModule, ok := r.Photon.FeePolicy.(*FeeModule)
+	feeModule, ok := r.Atmosphere.FeePolicy.(*FeeModule)
 	if !ok {
 		return errors.New("atmosphere start without param '--fee', can not set fee policy")
 	}
@@ -1216,11 +1175,11 @@ func (r *API) SetFeePolicy(fp *models.FeePolicy) error {
 
 // FindPath :
 func (r *API) FindPath(targetAddress, tokenAddress common.Address, amount *big.Int) (routes []pfsproxy.FindPathResponse, err error) {
-	if r.Photon.PfsProxy == nil {
+	if r.Atmosphere.PfsProxy == nil {
 		err = errors.New("atmosphere start without param '--pfs', can not calculate total fee")
 		return
 	}
-	routes, err = r.Photon.PfsProxy.FindPath(r.Photon.NodeAddress, targetAddress, tokenAddress, amount)
+	routes, err = r.Atmosphere.PfsProxy.FindPath(r.Atmosphere.NodeAddress, targetAddress, tokenAddress, amount)
 	if err != nil {
 		return
 	}
@@ -1235,7 +1194,7 @@ func (r *API) GetAllFeeChargeRecord() (resp *dto.APIResponse) {
 	}
 	var data responce
 	var err error
-	data.Details, err = r.Photon.db.GetAllFeeChargeRecord()
+	data.Details, err = r.Atmosphere.db.GetAllFeeChargeRecord()
 	if err != nil {
 		return dto.NewExceptionAPIResponse(err)
 	}

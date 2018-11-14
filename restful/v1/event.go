@@ -14,7 +14,7 @@ import (
 )
 
 /*
-EventNetwork returns all events related to Photon network
+EventNetwork returns all events related to Atmosphere network
 */
 func EventNetwork(w rest.ResponseWriter, r *rest.Request) {
 	fromBlock, toBlock := getFromTo(r)

@@ -28,10 +28,10 @@ type Policier interface {
 	Consume(tokens float64) time.Duration
 }
 
-//DeviceTypeMobile if you are a Photon running on a mobile phone
+//DeviceTypeMobile if you are a Atmosphere running on a mobile phone
 var DeviceTypeMobile = xmpptransport.TypeMobile
 
-//DeviceTypeMeshBox if you are a Photon running on a meshbox
+//DeviceTypeMeshBox if you are a Atmosphere running on a meshbox
 var DeviceTypeMeshBox = xmpptransport.TypeMeshBox
 
 //DeviceTypeOther if you don't known the type,and is not a mobile phone, then other

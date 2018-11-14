@@ -16,7 +16,6 @@ import (
 	"github.com/SmartMeshFoundation/Atmosphere/log"
 	"github.com/SmartMeshFoundation/Atmosphere/network"
 	"github.com/SmartMeshFoundation/Atmosphere/network/netshare"
-	"github.com/SmartMeshFoundation/Atmosphere/params"
 	"github.com/SmartMeshFoundation/Atmosphere/restful/v1"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -250,7 +249,7 @@ func (a *API) openChannel(partnerAddress, tokenAddress string, settleTimeout int
 		return
 	}
 	balance, _ := new(big.Int).SetString(balanceStr, 0)
-	c, err := a.api.Open(tokenAddr, partnerAddr, settleTimeout, a.api.Photon.Config.RevealTimeout, balance)
+	c, err := a.api.Open(tokenAddr, partnerAddr, settleTimeout, a.api.Atmosphere.Config.RevealTimeout, balance)
 	if err != nil {
 		log.Error(err.Error())
 		return
@@ -457,7 +456,7 @@ func (a *API) depositChannel(channelIdentifier string, balanceStr string) (chann
 		log.Error(fmt.Sprintf("GetChannel %s err %s", utils.HPex(channelIdentifierHash), err))
 		return
 	}
-	c, err = a.api.Deposit(c.TokenAddress(), c.PartnerAddress(), balance, params.DefaultPollTimeout)
+	c, err = a.api.Deposit(c.TokenAddress(), c.PartnerAddress(), balance)
 	if err != nil {
 		log.Error(fmt.Sprintf("Deposit to %s:%s err %s", utils.APex(c.TokenAddress()),
 			utils.APex(c.PartnerAddress()), err))
@@ -526,7 +525,7 @@ func (a *API) Address() (addr string) {
 }
 
 /*
-Tokens returns all the token have registered on Photon
+Tokens returns all the token have registered on Atmosphere
 for example:
 [
     "0x7B874444681F7AEF18D48f330a0Ba093d3d0fDD2"
@@ -583,44 +582,6 @@ func (a *API) TokenPartners(tokenAddress string) (channels string, err error) {
 }
 
 /*
-RegisterToken  Registering a new Token to smart atmosphere
-returns the new token's corresponding TokenNetwork Contract address.
-for example:
-tokenNetworkAddress: 0xBb1e95363b0181De7bBf394f18eaC7D4230e391A
-err: nil
-*/
-func (a *API) RegisterToken(tokenAddress string) (callID string, err error) {
-	callID = utils.NewRandomHash().String()
-	result := newResult()
-	a.callID2result[callID] = result
-	go func() {
-		r, e := a.registerToken(tokenAddress)
-		result.Result = r
-		result.Err = e
-		result.Done = true
-		a.callID2result[callID] = result
-	}()
-	return
-}
-func (a *API) registerToken(tokenAddress string) (tokenNetworkAddress string, err error) {
-	defer func() {
-		log.Trace(fmt.Sprintf("Api RegisterToken tokenAddress=%s,tokenNetworkAddress=%s,err=%v",
-			tokenAddress, tokenNetworkAddress, err,
-		))
-	}()
-	tokenAddr, err := utils.HexToAddressWithoutValidation(tokenAddress)
-	if err != nil {
-		return
-	}
-	mgr, err := a.api.RegisterToken(tokenAddr)
-	if err != nil {
-		log.Error(err.Error())
-		return
-	}
-	return mgr.String(), err
-}
-
-/*
 Transfers POST /api/1/transfers/0x2a65aca4d5fc5b5c859090a6c34d164135398226/0x61c808d82a3ac53231750dadc13c777b59310bd9
 Initiating a Transfer
 tokenAddress is  the token to transfer
@@ -674,7 +635,7 @@ func (a *API) Transfers(tokenAddress, targetAddress string, amountstr string, fe
 	}
 	req := &v1.TransferData{}
 	req.LockSecretHash = result.LockSecretHash.String()
-	req.Initiator = a.api.Photon.NodeAddress.String()
+	req.Initiator = a.api.Atmosphere.NodeAddress.String()
 	req.Target = targetAddress
 	req.Token = tokenAddress
 	req.Amount = amount
@@ -684,7 +645,7 @@ func (a *API) Transfers(tokenAddress, targetAddress string, amountstr string, fe
 }
 
 /*
-TokenSwap token swap for maker for two Photon nodes
+TokenSwap token swap for maker for two Atmosphere nodes
 the role should only be  "maker" or "taker".
 */
 func (a *API) TokenSwap(role string, lockSecretHash string, SendingAmountStr, ReceivingAmountStr string, SendingToken, ReceivingToken, TargetAddress string, SecretStr string) (callID string, err error) {
@@ -729,17 +690,17 @@ func (a *API) tokenSwap(role string, lockSecretHash string, SendingAmountStr, Re
 	}
 	if role == "maker" {
 		err = a.api.TokenSwapAndWait(lockSecretHash, makerToken, takerToken,
-			a.api.Photon.NodeAddress, target, SendingAmount, ReceivingAmount, SecretStr)
+			a.api.Atmosphere.NodeAddress, target, SendingAmount, ReceivingAmount, SecretStr)
 	} else if role == "taker" {
 		err = a.api.ExpectTokenSwap(lockSecretHash, takerToken, makerToken,
-			target, a.api.Photon.NodeAddress, ReceivingAmount, SendingAmount)
+			target, a.api.Atmosphere.NodeAddress, ReceivingAmount, SendingAmount)
 	} else {
 		err = fmt.Errorf("provided invalid token swap role %s", role)
 	}
 	return
 }
 
-//Stop stop Photon
+//Stop stop Atmosphere
 func (a *API) Stop() {
 	log.Trace("Api Stop")
 	//test only
@@ -798,7 +759,7 @@ SwitchNetwork  switch between mesh and internet
 */
 func (a *API) SwitchNetwork(isMesh bool) {
 	log.Trace(fmt.Sprintf("Api SwitchNetwork isMesh=%v", isMesh))
-	a.api.Photon.Config.IsMeshNetwork = isMesh
+	a.api.Atmosphere.Config.IsMeshNetwork = isMesh
 }
 
 /*
@@ -815,7 +776,7 @@ func (a *API) UpdateMeshNetworkNodes(nodesstr string) (err error) {
 		log.Error(err.Error())
 		return
 	}
-	err = a.api.Photon.Protocol.UpdateMeshNetworkNodes(nodes)
+	err = a.api.Atmosphere.Protocol.UpdateMeshNetworkNodes(nodes)
 	if err != nil {
 		log.Error(err.Error())
 		return
@@ -824,11 +785,11 @@ func (a *API) UpdateMeshNetworkNodes(nodesstr string) (err error) {
 }
 
 /*
-EthereumStatus  query the status between Photon and ethereum
+EthereumStatus  query the status between Atmosphere and ethereum
 todo fix it ,r is useless
 */
 func (a *API) EthereumStatus() (r string, err error) {
-	c := a.api.Photon.Chain
+	c := a.api.Atmosphere.Chain
 	if c != nil && c.Client.Status == netshare.Connected {
 		return time.Now().String(), nil
 	}
@@ -886,7 +847,7 @@ type NotifyHandler interface {
 	OnReceivedTransfer(tr string)
 	//OnSentTransfer a transfer sent success
 	OnSentTransfer(tr string)
-	// OnNotify get some important message Photon want to notify upper application
+	// OnNotify get some important message Atmosphere want to notify upper application
 	OnNotify(level int, info string)
 }
 
@@ -895,7 +856,7 @@ Subscribe  As to Status Notification, we put these codebase into an individual p
  and use channel to communication.
  To avoid write block, we can write data through select.
  We should make effort to avoid start go routine.
- If there's need to create a new Photon instance, sub.Unsubscribe must be invoked to do that or memory leakage will occur.
+ If there's need to create a new Atmosphere instance, sub.Unsubscribe must be invoked to do that or memory leakage will occur.
 */
 func (a *API) Subscribe(handler NotifyHandler) (sub *Subscription, err error) {
 	sub = &Subscription{
@@ -907,7 +868,7 @@ func (a *API) Subscribe(handler NotifyHandler) (sub *Subscription, err error) {
 	}
 
 	var xn <-chan netshare.Status
-	switch t := a.api.Photon.Transport.(type) {
+	switch t := a.api.Atmosphere.Transport.(type) {
 	case *network.MatrixMixTransport:
 		xn, err = t.GetNotify()
 		if err != nil {
@@ -931,27 +892,27 @@ func (a *API) Subscribe(handler NotifyHandler) (sub *Subscription, err error) {
 			select {
 			case err = <-rpanic.GetNotify():
 				handler.OnError(32, err.Error())
-			case s := <-a.api.Photon.EthConnectionStatus:
+			case s := <-a.api.Atmosphere.EthConnectionStatus:
 				cs.EthStatus = s
-				cs.LastBlockTime = a.api.Photon.GetDb().GetLastBlockNumberTime().Format(v1.BlockTimeFormat)
+				cs.LastBlockTime = a.api.Atmosphere.GetDb().GetLastBlockNumberTime().Format(v1.BlockTimeFormat)
 				d, err = json.Marshal(cs)
 				handler.OnStatusChange(string(d))
 			case s := <-xn:
 				cs.XMPPStatus = s
-				cs.LastBlockTime = a.api.Photon.GetDb().GetLastBlockNumberTime().Format(v1.BlockTimeFormat)
+				cs.LastBlockTime = a.api.Atmosphere.GetDb().GetLastBlockNumberTime().Format(v1.BlockTimeFormat)
 				d, err = json.Marshal(cs)
 				handler.OnStatusChange(string(d))
-			case t, ok := <-a.api.Photon.NotifyHandler.GetSentTransferChan():
+			case t, ok := <-a.api.Atmosphere.NotifyHandler.GetSentTransferChan():
 				if ok {
 					d, err = json.Marshal(t)
 					handler.OnSentTransfer(string(d))
 				}
-			case t, ok := <-a.api.Photon.NotifyHandler.GetReceivedTransferChan():
+			case t, ok := <-a.api.Atmosphere.NotifyHandler.GetReceivedTransferChan():
 				if ok {
 					d, err = json.Marshal(t)
 					handler.OnReceivedTransfer(string(d))
 				}
-			case n, ok := <-a.api.Photon.NotifyHandler.GetNoticeChan():
+			case n, ok := <-a.api.Atmosphere.NotifyHandler.GetNoticeChan():
 				if ok {
 					handler.OnNotify(int(n.Level), n.Info)
 				}
@@ -1006,7 +967,7 @@ func (a *API) GetTransferStatus(tokenAddressStr string, lockSecretHashStr string
 		log.Error(err.Error())
 		return
 	}
-	ts, err := a.api.Photon.GetDb().GetTransferStatus(tokenAddress, common.HexToHash(lockSecretHashStr))
+	ts, err := a.api.Atmosphere.GetDb().GetTransferStatus(tokenAddress, common.HexToHash(lockSecretHashStr))
 	if err != nil {
 		log.Error(fmt.Sprintf("err =%s", err))
 		return

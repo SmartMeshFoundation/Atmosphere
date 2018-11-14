@@ -10,10 +10,10 @@ import (
 	"os"
 
 	"github.com/SmartMeshFoundation/Atmosphere/channel/channeltype"
+	"github.com/SmartMeshFoundation/Atmosphere/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/encoding"
 	"github.com/SmartMeshFoundation/Atmosphere/log"
 	"github.com/SmartMeshFoundation/Atmosphere/network/rpc"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/rerr"
 	"github.com/SmartMeshFoundation/Atmosphere/transfer/mtree"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
@@ -174,7 +174,7 @@ func makeExternState() *ExternalState {
 	bcs := newTestBlockChainService()
 	ch := common.HexToHash(os.Getenv("CHANNEL"))
 	//must provide a valid netting channel address
-	tokenNetwork, _ := bcs.TokenNetwork(common.HexToAddress(os.Getenv("TOKEN_NETWORK")))
+	tokenNetwork := bcs.NewTokenNetworkProxy(common.HexToAddress(os.Getenv("TOKEN_NETWORK")), true)
 	return NewChannelExternalState(testFuncRegisterChannelForHashlock,
 		tokenNetwork,
 		&contracts.ChannelUniqueID{

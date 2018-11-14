@@ -90,13 +90,13 @@ func StartMain() (*atmosphere.API, error) {
 			Value: node.DefaultIPCEndpoint("geth"),
 		},
 		cli.StringFlag{
-			Name:  "registry-contract-address",
-			Usage: `hex encoded address of the registry contract.`,
+			Name:  "token-network-address",
+			Usage: `hex encoded address of the token network contract.`,
 		},
 		cli.StringFlag{
 			Name:  "listen-address",
 			Usage: `"host:port" for the atmosphere service to listen on.`,
-			Value: fmt.Sprintf("0.0.0.0:%d", params.InitialPort),
+			Value: fmt.Sprintf("0.0.0.0:%d", params.DefaultUDPListenPort),
 		},
 		cli.StringFlag{
 			Name:  "api-address",
@@ -158,7 +158,7 @@ func StartMain() (*atmosphere.API, error) {
 		cli.IntFlag{
 			Name:  "reveal-timeout",
 			Usage: "channels' reveal timeout, default 10",
-			Value: params.DefaultRevealTimeout,
+			Value: params.RevealTimeout,
 		},
 		cli.StringFlag{
 			Name:  "pfs",
@@ -200,7 +200,7 @@ func mainCtx(ctx *cli.Context) (err error) {
 	// connect to blockchain
 	client, err := helper.NewSafeClient(cfg.EthRPCEndPoint)
 	if err != nil {
-		err = fmt.Errorf("cannot connect to geth :%s err=%s", cfg.EthRPCEndPoint, err)
+		err = fmt.Errorf("cannot connect to smc :%s err=%s", cfg.EthRPCEndPoint, err)
 		err = nil
 	}
 	// open db
@@ -210,7 +210,7 @@ func mainCtx(ctx *cli.Context) (err error) {
 		client.Close()
 		return
 	}
-	cfg.RegistryAddress, isFirstStartUp, hasConnectedChain, err = getRegistryAddress(cfg, db, client)
+	cfg.TokenNetworkAddress, isFirstStartUp, hasConnectedChain, err = getTokenNetworkAddress(cfg, db, client)
 	if err != nil {
 		client.Close()
 		db.CloseDB()
@@ -237,7 +237,7 @@ func mainCtx(ctx *cli.Context) (err error) {
 	}
 
 	// init blockchain module
-	bcs, err := rpc.NewBlockChainService(cfg.PrivateKey, cfg.RegistryAddress, client)
+	bcs, err := rpc.NewBlockChainService(cfg.PrivateKey, cfg.TokenNetworkAddress, client)
 	if err != nil {
 		db.CloseDB()
 		client.Close()
@@ -246,7 +246,7 @@ func mainCtx(ctx *cli.Context) (err error) {
 	if isFirstStartUp {
 		err = verifyContractCode(bcs)
 		if err != nil {
-			db.SaveRegistryAddress(utils.EmptyAddress) // return to first start up
+			db.SaveTokenNetworkAddress(utils.EmptyAddress) // return to first start up
 			db.CloseDB()
 			client.Close()
 			return
@@ -271,7 +271,7 @@ func mainCtx(ctx *cli.Context) (err error) {
 		service.Stop()
 		return
 	}
-	api = atmosphere.NewPhotonAPI(service)
+	api = atmosphere.NewAtmosphereAPI(service)
 	regQuitHandler(api)
 	if params.MobileMode {
 		if cfg.APIHost == "0.0.0.0" {
@@ -361,9 +361,9 @@ func config(ctx *cli.Context) (config *params.Config, err error) {
 	}
 	config.MyAddress = crypto.PubkeyToAddress(config.PrivateKey.PublicKey)
 	log.Info(fmt.Sprintf("Start with account %s", config.MyAddress.String()))
-	registAddrStr := ctx.String("registry-contract-address")
+	registAddrStr := ctx.String("token-network-address")
 	if len(registAddrStr) > 0 {
-		config.RegistryAddress = common.HexToAddress(registAddrStr)
+		config.TokenNetworkAddress = common.HexToAddress(registAddrStr)
 	}
 	dataDir := ctx.String("datadir")
 	if len(dataDir) == 0 {
@@ -433,11 +433,7 @@ func config(ctx *cli.Context) (config *params.Config, err error) {
 		err = fmt.Errorf("atmosphere start with pfs %s, but not use matrix, exit", config.PfsHost)
 		return
 	}
-
-	if ctx.Bool("enable-fork-confirm") {
-		log.Info("fork-confirm enable...")
-		params.EnableForkConfirm = true
-	}
+	config.EnableForkConfirm = ctx.Bool("enable-fork-confirm")
 	return
 }
 
@@ -471,31 +467,31 @@ func getPrivateKey(ctx *cli.Context) (privateKey *ecdsa.PrivateKey, err error) {
 	return crypto.ToECDSA(keyBin)
 }
 
-func getRegistryAddress(config *params.Config, db *models.ModelDB, client *helper.SafeEthClient) (registryAddress common.Address, isFirstStartUp, hasConnectedChain bool, err error) {
-	dbRegistryAddress := db.GetRegistryAddress()
-	isFirstStartUp = dbRegistryAddress == utils.EmptyAddress
+func getTokenNetworkAddress(config *params.Config, db *models.ModelDB, client *helper.SafeEthClient) (tokenNetworkAddress common.Address, isFirstStartUp, hasConnectedChain bool, err error) {
+	dbTokenNetworkAddress := db.GetTokenNetworkAddress()
+	isFirstStartUp = dbTokenNetworkAddress == utils.EmptyAddress
 	hasConnectedChain = client.Status == netshare.Connected
 	if isFirstStartUp && !hasConnectedChain {
 		err = fmt.Errorf("first startup without ethereum rpc connection")
 		return
 	}
-	if !isFirstStartUp && config.RegistryAddress != utils.EmptyAddress && dbRegistryAddress != config.RegistryAddress {
+	if !isFirstStartUp && config.TokenNetworkAddress != utils.EmptyAddress && dbTokenNetworkAddress != config.TokenNetworkAddress {
 		err = fmt.Errorf(fmt.Sprintf("db mismatch, db's registry=%s,now registry=%s",
-			dbRegistryAddress.String(), config.RegistryAddress.String()))
+			dbTokenNetworkAddress.String(), config.TokenNetworkAddress.String()))
 		return
 	}
 	if isFirstStartUp {
-		if config.RegistryAddress == utils.EmptyAddress {
-			registryAddress, err = getDefaultRegistryByEthClient(client)
+		if config.TokenNetworkAddress == utils.EmptyAddress {
+			tokenNetworkAddress, err = getDefaultRegistryByEthClient(client)
 			if err != nil {
 				return
 			}
 		} else {
-			registryAddress = config.RegistryAddress
+			tokenNetworkAddress = config.TokenNetworkAddress
 		}
-		db.SaveRegistryAddress(registryAddress)
+		db.SaveTokenNetworkAddress(tokenNetworkAddress)
 	} else {
-		registryAddress = dbRegistryAddress
+		tokenNetworkAddress = dbTokenNetworkAddress
 	}
 	return
 }
@@ -516,7 +512,7 @@ func getDefaultRegistryByEthClient(client *helper.SafeEthClient) (registryAddres
 */
 func verifyContractCode(bcs *rpc.BlockChainService) (err error) {
 	var contractVersion string
-	contractVersion, err = bcs.RegistryProxy.GetContractVersion()
+	contractVersion, err = bcs.TokenNetworkProxy.GetContractVersion()
 	if err != nil {
 		return
 	}

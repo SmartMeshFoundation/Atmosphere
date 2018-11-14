@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/SmartMeshFoundation/Atmosphere/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/log"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -16,20 +16,20 @@ import (
 //TokenProxy proxy of ERC20 token
 //todo test if support ApproveAndCall ,ERC223 etc
 type TokenProxy struct {
-	Address common.Address
-	bcs     *BlockChainService
-	Token   *contracts.Token
+	Address  common.Address
+	bcs      *BlockChainService
+	contract *contracts.Token
 }
 
 // TotalSupply total amount of tokens
 func (t *TokenProxy) TotalSupply() (*big.Int, error) {
-	return t.Token.TotalSupply(t.bcs.getQueryOpts())
+	return t.contract.TotalSupply(t.bcs.getQueryOpts())
 }
 
 // BalanceOf The balance
 // @param _owner The address from which the balance will be retrieved
 func (t *TokenProxy) BalanceOf(addr common.Address) (*big.Int, error) {
-	amount, err := t.Token.BalanceOf(t.bcs.getQueryOpts(), addr)
+	amount, err := t.contract.BalanceOf(t.bcs.getQueryOpts(), addr)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +40,7 @@ func (t *TokenProxy) BalanceOf(addr common.Address) (*big.Int, error) {
 // @param _owner The address of the account owning tokens
 // @param _spender The address of the account able to transfer the tokens
 func (t *TokenProxy) Allowance(owner, spender common.Address) (int64, error) {
-	amount, err := t.Token.Allowance(t.bcs.getQueryOpts(), owner, spender)
+	amount, err := t.contract.Allowance(t.bcs.getQueryOpts(), owner, spender)
 	if err != nil {
 		return 0, err
 	}
@@ -52,7 +52,7 @@ func (t *TokenProxy) Allowance(owner, spender common.Address) (int64, error) {
 // @param _spender The address of the account able to transfer the tokens
 // @param _value The amount of wei to be approved for transfer
 func (t *TokenProxy) Approve(spender common.Address, value *big.Int) (err error) {
-	tx, err := t.Token.Approve(t.bcs.Auth, spender, value)
+	tx, err := t.contract.Approve(t.bcs.Auth, spender, value)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (t *TokenProxy) Transfer(spender common.Address, value *big.Int) (err error
 	if err != nil {
 		return
 	}
-	tx, err := t.Token.TransferFrom(t.bcs.Auth, t.bcs.Auth.From, spender, value)
+	tx, err := t.contract.TransferFrom(t.bcs.Auth, t.bcs.Auth.From, spender, value)
 	if err != nil {
 		return err
 	}
@@ -88,10 +88,10 @@ func (t *TokenProxy) Transfer(spender common.Address, value *big.Int) (err error
 		return err
 	}
 	if receipt.Status != types.ReceiptStatusSuccessful {
-		log.Info(fmt.Sprintf("Transfer failed %s,receipt=%s", utils.APex(t.Address), receipt))
-		return errors.New("Transfer tx execution failed")
+		log.Info(fmt.Sprintf("ContractCall -> Transfer failed %s,receipt=%s", utils.APex(t.Address), receipt))
+		return errors.New("ContractCall -> Transfer tx execution failed")
 	}
-	log.Info(fmt.Sprintf("Transfer success %s,spender=%s,value=%d", utils.APex(t.Address), utils.APex(spender), value))
+	log.Info(fmt.Sprintf("ContractCall -> Transfer success %s,spender=%s,value=%d", utils.APex(t.Address), utils.APex(spender), value))
 	return nil
 }
 
@@ -107,7 +107,7 @@ func (t *TokenProxy) TransferAsync(spender common.Address, value *big.Int) (resu
 
 //TransferWithFallback ERC223 TokenFallback
 func (t *TokenProxy) TransferWithFallback(to common.Address, value *big.Int, extraData []byte) (err error) {
-	tx, err := t.Token.Transfer(t.bcs.Auth, to, value, extraData)
+	tx, err := t.contract.Transfer(t.bcs.Auth, to, value, extraData)
 	if err != nil {
 		return err
 	}
@@ -116,16 +116,16 @@ func (t *TokenProxy) TransferWithFallback(to common.Address, value *big.Int, ext
 		return err
 	}
 	if receipt.Status != types.ReceiptStatusSuccessful {
-		log.Info(fmt.Sprintf("TransferWithFallback failed %s,receipt=%s", utils.APex(t.Address), receipt))
-		return errors.New("TransferWithFallback tx execution failed")
+		log.Info(fmt.Sprintf("ContractCall -> TransferWithFallback failed %s,receipt=%s", utils.APex(t.Address), receipt))
+		return errors.New("ContractCall -> TransferWithFallback tx execution failed")
 	}
-	log.Info(fmt.Sprintf("TransferWithFallback success %s,spender=%s,value=%d", utils.APex(t.Address), utils.APex(to), value))
+	log.Info(fmt.Sprintf("ContractCall -> TransferWithFallback success %s,spender=%s,value=%d", utils.APex(t.Address), utils.APex(to), value))
 	return nil
 }
 
 //ApproveAndCall ERC20 extend
 func (t *TokenProxy) ApproveAndCall(spender common.Address, value *big.Int, extraData []byte) (err error) {
-	tx, err := t.Token.ApproveAndCall(t.bcs.Auth, spender, value, extraData)
+	tx, err := t.contract.ApproveAndCall(t.bcs.Auth, spender, value, extraData)
 	if err != nil {
 		return err
 	}
@@ -134,9 +134,9 @@ func (t *TokenProxy) ApproveAndCall(spender common.Address, value *big.Int, extr
 		return err
 	}
 	if receipt.Status != types.ReceiptStatusSuccessful {
-		log.Info(fmt.Sprintf("ApproveAndCall failed %s,receipt=%s", utils.APex(t.Address), receipt))
-		return errors.New("ApproveAndCall tx execution failed")
+		log.Info(fmt.Sprintf("ContractCall -> ApproveAndCall failed %s,receipt=%s", utils.APex(t.Address), receipt))
+		return errors.New("ContractCall -> ApproveAndCall tx execution failed")
 	}
-	log.Info(fmt.Sprintf("ApproveAndCall success %s,spender=%s,value=%d", utils.APex(t.Address), utils.APex(spender), value))
+	log.Info(fmt.Sprintf("ContractCall -> ApproveAndCall success %s,spender=%s,value=%d", utils.APex(t.Address), utils.APex(spender), value))
 	return nil
 }

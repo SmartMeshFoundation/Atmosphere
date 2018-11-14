@@ -11,16 +11,16 @@ import (
 
 	"crypto/ecdsa"
 
+	"github.com/SmartMeshFoundation/Atmosphere/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/encoding"
 	"github.com/SmartMeshFoundation/Atmosphere/log"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
 //PrivateRopstenRegistryAddress test registry address, todo use env
-var PrivateRopstenRegistryAddress = common.HexToAddress(os.Getenv("TOKEN_NETWORK_REGISTRY"))
+var PrivateRopstenRegistryAddress = common.HexToAddress(os.Getenv("TOKEN_NETWORK"))
 
 //TestRPCEndpoint test eth rpc url, todo use env
 var TestRPCEndpoint = os.Getenv("ETHRPCENDPOINT")
@@ -82,16 +82,6 @@ func TestGetTokenNetworkAddress() common.Address {
 	return addr
 }
 
-//TestGetTokenNetworkRegistryAddress for test only
-func TestGetTokenNetworkRegistryAddress() common.Address {
-	addr := common.HexToAddress(os.Getenv("TOKEN_NETWORK_REGISTRY"))
-	if addr == utils.EmptyAddress {
-		panic("REGISTRY env error")
-	}
-	log.Info(fmt.Sprintf("TOKEN_NETWORK_REGISTRY=%s", addr.String()))
-	return addr
-}
-
 //TestGetParticipant1 for test only
 func TestGetParticipant1() (privKey *ecdsa.PrivateKey, addr common.Address) {
 	keybin, err := hex.DecodeString(os.Getenv("KEY1"))
@@ -117,43 +107,3 @@ func testGetParticipant(keybin []byte) (privKey *ecdsa.PrivateKey, addr common.A
 	addr = crypto.PubkeyToAddress(privKey.PublicKey)
 	return
 }
-
-/*
-CreateChannelBetweenAddress these two address doesn't need have token and ether
-*/
-//func CreateChannelBetweenAddress(client *ethclient.Client, addr1, addr2 common.Address, key1, key2 *ecdsa.PrivateKey) (err error) {
-//	token := os.Getenv("TOKEN")
-//	tokenNetwork := os.Getenv("TOKENNETWORK")
-//	auth := bind.NewKeyedTransactor(TestPrivKey)
-//	tokenNetworkAddress := common.HexToAddress(tokenNetwork)
-//	tp, err := contracts.NewToken(common.HexToAddress(token), client)
-//	if err != nil {
-//		return
-//	}
-//	err = createchannel.TransferTo(client, TestPrivKey, addr1, big.NewInt(params.Ether))
-//	if err != nil {
-//		return
-//	}
-//	err = createchannel.TransferTo(client, TestPrivKey, addr2, big.NewInt(params.Ether))
-//	if err != nil {
-//		return
-//	}
-//	tx, err := tp.Transfer(auth, addr1, big.NewInt(500))
-//	if err != nil {
-//		return
-//	}
-//	_, err = bind.WaitMined(context.Background(), client, tx)
-//	if err != nil {
-//		return
-//	}
-//	tx, err = tp.Transfer(auth, addr2, big.NewInt(500))
-//	if err != nil {
-//		return
-//	}
-//	_, err = bind.WaitMined(context.Background(), client, tx)
-//	if err != nil {
-//		return
-//	}
-//	createchannel.CreatAChannelAndDeposit(addr1, addr2, key1, key2, 40, tokenNetworkAddress, tp, client)
-//	return
-//}

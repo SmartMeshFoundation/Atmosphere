@@ -7,16 +7,15 @@ import (
 
 	"time"
 
-	"fmt"
-
 	"crypto/ecdsa"
 
+	"fmt"
 	"sync"
 
+	"github.com/SmartMeshFoundation/Atmosphere/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/log"
 	"github.com/SmartMeshFoundation/Atmosphere/network/helper"
 	"github.com/SmartMeshFoundation/Atmosphere/network/netshare"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/params"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -48,9 +47,8 @@ type BlockChainService struct {
 	//PrivKey of this node, todo remove this
 	PrivKey *ecdsa.PrivateKey
 	//NodeAddress is address of this node
-	NodeAddress common.Address
-	//RegistryAddress registy contract address
-	RegistryProxy       *RegistryProxy
+	NodeAddress         common.Address
+	TokenNetworkProxy   *TokenNetworkProxy
 	SecretRegistryProxy *SecretRegistryProxy
 	//Client if eth rpc client
 	Client          *helper.SafeEthClient
@@ -61,7 +59,7 @@ type BlockChainService struct {
 }
 
 //NewBlockChainService create BlockChainService
-func NewBlockChainService(privateKey *ecdsa.PrivateKey, registryAddress common.Address, client *helper.SafeEthClient) (bcs *BlockChainService, err error) {
+func NewBlockChainService(privateKey *ecdsa.PrivateKey, tokenNetworkAddress common.Address, client *helper.SafeEthClient) (bcs *BlockChainService, err error) {
 	bcs = &BlockChainService{
 		PrivKey:         privateKey,
 		NodeAddress:     crypto.PubkeyToAddress(privateKey.PublicKey),
@@ -71,12 +69,86 @@ func NewBlockChainService(privateKey *ecdsa.PrivateKey, registryAddress common.A
 		Auth:            bind.NewKeyedTransactor(privateKey),
 	}
 	// remove gas limit config and let it calculate automatically
-	//bcs.Auth.GasLimit = uint64(params.GasLimit)
-	bcs.Auth.GasPrice = big.NewInt(params.GasPrice)
+	//bcs.Auth.DefaultGasLimit = uint64(params.DefaultGasLimit)
+	bcs.Auth.GasPrice = big.NewInt(params.DefaultGasPrice)
 
-	bcs.Registry(registryAddress, client.Status == netshare.Connected)
+	bcs.NewTokenNetworkProxy(tokenNetworkAddress, client.Status == netshare.Connected)
 	return bcs, nil
 }
+
+// NewTokenProxy return a proxy to interact with a token.
+func (bcs *BlockChainService) NewTokenProxy(tokenAddress common.Address) (proxy *TokenProxy, err error) {
+	_, ok := bcs.addressTokens[tokenAddress]
+	if !ok {
+		token, err := contracts.NewToken(tokenAddress, bcs.Client)
+		if err != nil {
+			log.Error(fmt.Sprintf("NewTokenProxy %s err %s", tokenAddress.String(), err))
+			return nil, err
+		}
+		bcs.addressTokens[tokenAddress] = &TokenProxy{
+			Address: tokenAddress, bcs: bcs, contract: token}
+	}
+	return bcs.addressTokens[tokenAddress], nil
+}
+
+// NewTokenNetworkProxy Return a proxy to interact with Registry.
+func (bcs *BlockChainService) NewTokenNetworkProxy(address common.Address, hasConnectChain bool) (t *TokenNetworkProxy) {
+	if bcs.TokenNetworkProxy != nil {
+		return bcs.TokenNetworkProxy
+	}
+	r := &TokenNetworkProxy{
+		Address: address,
+		bcs:     bcs,
+	}
+	if hasConnectChain {
+		tokenNetwork, err := contracts.NewTokenNetwork(address, bcs.Client)
+		if err != nil {
+			log.Error(fmt.Sprintf("NewRegistry %s err %s ", address.String(), err))
+			return
+		}
+		r.contract = tokenNetwork
+		secAddr, err := r.contract.SecretRegistry(nil)
+		if err != nil {
+			log.Error(fmt.Sprintf("get secret_registry_address %s", err))
+			return
+		}
+		s, err := contracts.NewSecretRegistry(secAddr, bcs.Client)
+		if err != nil {
+			log.Error(fmt.Sprintf("NewSecretRegistry err %s", err))
+			return
+		}
+		bcs.SecretRegistryProxy = &SecretRegistryProxy{
+			Address:         secAddr,
+			bcs:             bcs,
+			contract:        s,
+			registryLockMap: make(map[common.Hash]*sync.Mutex),
+		}
+	}
+	bcs.TokenNetworkProxy = r
+	return bcs.TokenNetworkProxy
+}
+
+// GetTokenNetworkAddress :
+func (bcs *BlockChainService) GetTokenNetworkAddress() common.Address {
+	if bcs.TokenNetworkProxy != nil {
+		return bcs.TokenNetworkProxy.Address
+	}
+	return utils.EmptyAddress
+}
+
+// GetSecretRegistryAddress :
+func (bcs *BlockChainService) GetSecretRegistryAddress() common.Address {
+	if bcs.SecretRegistryProxy != nil {
+		return bcs.SecretRegistryProxy.Address
+	}
+	return utils.EmptyAddress
+}
+
+// IsConnected  :
+func (bcs *BlockChainService) IsConnected() bool {
+	return bcs.TokenNetworkProxy != nil && bcs.TokenNetworkProxy.contract != nil && bcs.Client.Status == netshare.Connected
+}
+
 func (bcs *BlockChainService) getQueryOpts() *bind.CallOpts {
 	return &bind.CallOpts{
 		Pending: false,
@@ -120,105 +192,4 @@ func (bcs *BlockChainService) nextBlock() (currentBlock *big.Int, err error) {
 		}
 	}
 	return
-}
-
-// Token return a proxy to interact with a token.
-func (bcs *BlockChainService) Token(tokenAddress common.Address) (t *TokenProxy, err error) {
-	_, ok := bcs.addressTokens[tokenAddress]
-	if !ok {
-		token, err := contracts.NewToken(tokenAddress, bcs.Client)
-		if err != nil {
-			log.Error(fmt.Sprintf("NewToken %s err %s", tokenAddress.String(), err))
-			return nil, err
-		}
-		bcs.addressTokens[tokenAddress] = &TokenProxy{
-			Address: tokenAddress, bcs: bcs, Token: token}
-	}
-	return bcs.addressTokens[tokenAddress], nil
-}
-
-//TokenNetwork return a proxy to interact with a NettingChannelContract.
-func (bcs *BlockChainService) TokenNetwork(address common.Address) (t *TokenNetworkProxy, err error) {
-	_, ok := bcs.addressChannels[address]
-	if !ok {
-		var tokenNetwork *contracts.TokenNetwork
-		tokenNetwork, err = contracts.NewTokenNetwork(address, bcs.Client)
-		if err != nil {
-			log.Error(fmt.Sprintf("NewNettingChannelContract %s err %s", address.String(), err))
-			return
-		}
-		if !bcs.contractExist(address) {
-			return nil, fmt.Errorf("no code at %s", address.String())
-		}
-		bcs.addressChannels[address] = &TokenNetworkProxy{Address: address, bcs: bcs, ch: tokenNetwork}
-	}
-	return bcs.addressChannels[address], nil
-}
-
-//TokenNetworkWithoutCheck return a proxy to interact with a NettingChannelContract,don't check this address is valid or not
-func (bcs *BlockChainService) TokenNetworkWithoutCheck(address common.Address) (t *TokenNetworkProxy, err error) {
-	_, ok := bcs.addressChannels[address]
-	if !ok {
-		var ch *contracts.TokenNetwork
-		ch, err = contracts.NewTokenNetwork(address, bcs.Client)
-		if err != nil {
-			log.Error(fmt.Sprintf("NewNettingChannelContract %s err %s", address.String(), err))
-			return
-		}
-		bcs.addressChannels[address] = &TokenNetworkProxy{Address: address, bcs: bcs, ch: ch}
-	}
-	return bcs.addressChannels[address], nil
-}
-
-// Registry Return a proxy to interact with Registry.
-func (bcs *BlockChainService) Registry(address common.Address, hasConnectChain bool) (t *RegistryProxy) {
-	if bcs.RegistryProxy != nil && bcs.RegistryProxy.registry != nil {
-		return bcs.RegistryProxy
-	}
-	r := &RegistryProxy{
-		Address: address,
-		bcs:     bcs,
-	}
-	if hasConnectChain {
-		reg, err := contracts.NewTokenNetworkRegistry(address, bcs.Client)
-		if err != nil {
-			log.Error(fmt.Sprintf("NewRegistry %s err %s ", address.String(), err))
-			return
-		}
-		r.registry = reg
-		secAddr, err := r.registry.SecretRegistryAddress(nil)
-		if err != nil {
-			log.Error(fmt.Sprintf("get Secret_registry_address %s", err))
-			return
-		}
-		s, err := contracts.NewSecretRegistry(secAddr, bcs.Client)
-		if err != nil {
-			log.Error(fmt.Sprintf("NewSecretRegistry err %s", err))
-			return
-		}
-		bcs.SecretRegistryProxy = &SecretRegistryProxy{
-			Address:          secAddr,
-			bcs:              bcs,
-			registry:         s,
-			RegisteredSecret: make(map[common.Hash]*sync.Mutex),
-		}
-	}
-	bcs.RegistryProxy = r
-	return bcs.RegistryProxy
-}
-
-// GetRegistryAddress :
-func (bcs *BlockChainService) GetRegistryAddress() common.Address {
-	if bcs.RegistryProxy != nil {
-		return bcs.RegistryProxy.Address
-	}
-	return utils.EmptyAddress
-}
-
-// GetSecretRegistryAddress :
-func (bcs *BlockChainService) GetSecretRegistryAddress() common.Address {
-	if bcs.SecretRegistryProxy != nil {
-		return bcs.SecretRegistryProxy.Address
-	}
-	return utils.EmptyAddress
 }

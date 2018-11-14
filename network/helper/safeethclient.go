@@ -12,7 +12,6 @@ import (
 
 	"github.com/SmartMeshFoundation/Atmosphere/log"
 	"github.com/SmartMeshFoundation/Atmosphere/network/netshare"
-	"github.com/SmartMeshFoundation/Atmosphere/params"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -430,7 +429,7 @@ func checkConnectStatus(c *ethclient.Client) (err error) {
 	if c == nil {
 		return errNotConnectd
 	}
-	ctx, cancelFunc := context.WithTimeout(context.Background(), params.EthRPCTimeout)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancelFunc()
 	_, err = c.HeaderByNumber(ctx, big.NewInt(1))
 	if err != nil {

@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/SmartMeshFoundation/Atmosphere/cmd/atmosphere/mainimpl"
+	"github.com/SmartMeshFoundation/Atmosphere/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/network/rpc"
-	"github.com/SmartMeshFoundation/Atmosphere/network/rpc/contracts"
 	"github.com/SmartMeshFoundation/Atmosphere/restful/v1"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
 	"github.com/ethereum/go-ethereum/common"

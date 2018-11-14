@@ -33,17 +33,17 @@ func TestModelDB_NewNonParticipantChannel(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	edges, err := model.GetAllNonParticipantChannel(token)
+	edges, err := model.GetAllNonParticipantChannelByToken(token)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	assert.EqualValues(t, len(edges), 4)
-	err = model.RemoveNonParticipantChannel(token, utils.NewRandomHash())
+	err = model.RemoveNonParticipantChannel(utils.NewRandomHash())
 	assert.EqualValues(t, err != nil, true)
-	err = model.RemoveNonParticipantChannel(token, channel2)
+	err = model.RemoveNonParticipantChannel(channel2)
 	assert.EqualValues(t, err == nil, true)
-	edges, err = model.GetAllNonParticipantChannel(token)
+	edges, err = model.GetAllNonParticipantChannelByToken(token)
 	assert.EqualValues(t, len(edges), 2)
 }
 func TestReadDbAgain(t *testing.T) {
@@ -54,7 +54,7 @@ func TestReadDbAgain(t *testing.T) {
 		return
 	}
 	defer model.CloseDB()
-	edges, err := model.GetAllNonParticipantChannel(token)
+	edges, err := model.GetAllNonParticipantChannelByToken(token)
 	if err != nil {
 		t.Error(err)
 		return

@@ -33,7 +33,7 @@ func Balance(w rest.ResponseWriter, r *rest.Request) {
 		rest.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	t, err := API.Photon.Chain.Token(token)
+	t, err := API.Atmosphere.Chain.NewTokenProxy(token)
 	if err != nil {
 		rest.Error(w, err.Error(), http.StatusConflict)
 		return
@@ -74,7 +74,7 @@ func TransferToken(w rest.ResponseWriter, r *rest.Request) {
 		rest.Error(w, "arg error ", http.StatusBadRequest)
 		return
 	}
-	t, err := API.Photon.Chain.Token(token)
+	t, err := API.Atmosphere.Chain.NewTokenProxy(token)
 	if err != nil {
 		rest.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -99,7 +99,7 @@ func EthBalance(w rest.ResponseWriter, r *rest.Request) {
 		rest.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	v, err := API.Photon.Chain.Client.BalanceAt(context.Background(), addr, nil)
+	v, err := API.Atmosphere.Chain.Client.BalanceAt(context.Background(), addr, nil)
 	if err != nil {
 		rest.Error(w, err.Error(), http.StatusConflict)
 		return
@@ -121,13 +121,13 @@ type ConnectionStatus struct {
 }
 
 /*
-EthereumStatus  query the status between Photon and ethereum
+EthereumStatus  query the status between Atmosphere and ethereum
 */
 func EthereumStatus(w rest.ResponseWriter, r *rest.Request) {
-	c := API.Photon.Chain
+	c := API.Atmosphere.Chain
 	cs := &ConnectionStatus{
 		XMPPStatus:    netshare.Disconnected,
-		LastBlockTime: API.Photon.GetDb().GetLastBlockNumberTime().Format(BlockTimeFormat),
+		LastBlockTime: API.Atmosphere.GetDb().GetLastBlockNumberTime().Format(BlockTimeFormat),
 	}
 	if c != nil && c.Client.Status == netshare.Connected {
 		cs.EthStatus = netshare.Connected
