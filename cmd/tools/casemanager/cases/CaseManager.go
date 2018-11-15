@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/SmartMeshFoundation/Photon/cmd/tools/casemanager/models"
+	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/casemanager/models"
 )
 
 // CaseManager include env and cases
@@ -50,9 +50,7 @@ func (c *CaseManager) RunAll(skip string) {
 	for _, k := range keys {
 		v := c.Cases[k]
 		rs := v.Call(nil)
-		fmt.Println("----------------------------->Start to run case " + k + "...")
 		if rs[0].Interface() == nil {
-			fmt.Printf("%s SUCCESS\n", k)
 		} else {
 			err := rs[0].Interface().(error)
 			if err == nil {

@@ -6,7 +6,7 @@ import (
 
 	"log"
 
-	"github.com/SmartMeshFoundation/Photon/cmd/tools/smoketest/cases"
+	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/smoketest/cases"
 )
 
 // SmokeTest of smartphoton api
@@ -14,7 +14,7 @@ func SmokeTest() {
 	log.Println("SmokeTest start ...")
 	caseLogger := cases.Logger
 	caseLogger.Println("==============================================================================================")
-	caseLogger.Println("Start Test gophoton Api")
+	caseLogger.Println("Start Test atmosphere Api")
 	caseLogger.Println("==================================================")
 	rand.Seed(time.Now().UnixNano())
 	start := time.Now()
@@ -51,9 +51,6 @@ func runSmokeCases() {
 	cases.TokenSwapsTest(env, allowFail)
 
 	// cases about token
-	cases.RegisteringTokenTest(env, allowFail)
-	//cases.Connecting2TokenNetworkTest(env, allowFail)
-	//cases.LeavingTokenNetworkTest(env, allowFail)
 
 	// others
 	cases.WithdrawTest(env, allowFail)

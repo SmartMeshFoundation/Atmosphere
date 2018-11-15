@@ -31,7 +31,6 @@ func to32bytes(src []byte) []byte {
 func makeDepositData(participantAddress, partnerAddress common.Address, settleTimeout int) []byte {
 	var err error
 	buf := new(bytes.Buffer)
-	_, err = buf.Write(utils.BigIntTo32Bytes(big.NewInt(2))) //open and deposit
 	_, err = buf.Write(to32bytes(participantAddress[:]))
 	_, err = buf.Write(to32bytes(partnerAddress[:]))
 	_, err = buf.Write(utils.BigIntTo32Bytes(big.NewInt(int64(settleTimeout)))) //settle_timeout

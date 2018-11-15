@@ -5,8 +5,8 @@ import (
 
 	"time"
 
-	"github.com/SmartMeshFoundation/Photon/cmd/tools/casemanager/models"
-	"github.com/SmartMeshFoundation/Photon/params"
+	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/casemanager/models"
+	"github.com/SmartMeshFoundation/Atmosphere/params"
 )
 
 // CrashCaseRecvAck05 场景五：RevealSecretRecevieAck

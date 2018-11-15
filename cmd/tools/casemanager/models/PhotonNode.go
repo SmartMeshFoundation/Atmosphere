@@ -11,7 +11,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/SmartMeshFoundation/Photon/params"
+	"github.com/SmartMeshFoundation/Atmosphere/params"
 )
 
 // PhotonNode a atmosphere node
@@ -145,7 +145,7 @@ func (node *PhotonNode) getParamStr(env *TestEnv) []string {
 	param = append(param, "--listen-address="+node.ListenAddress)
 	param = append(param, "--address="+node.Address)
 	param = append(param, "--keystore-path="+env.KeystorePath)
-	param = append(param, "--registry-contract-address="+env.RegistryContractAddress)
+	param = append(param, "--token-network-address="+env.TokenNetworkAddress)
 	param = append(param, "--password-file="+env.PasswordFile)
 	param = append(param, "--nonetwork")
 	if env.XMPPServer != "" {
@@ -174,7 +174,7 @@ func (node *PhotonNode) getParamStrWithoutNoNetwork(env *TestEnv) []string {
 	param = append(param, "--listen-address="+node.ListenAddress)
 	param = append(param, "--address="+node.Address)
 	param = append(param, "--keystore-path="+env.KeystorePath)
-	param = append(param, "--registry-contract-address="+env.RegistryContractAddress)
+	param = append(param, "--token_network_address="+env.TokenNetworkAddress)
 	param = append(param, "--password-file="+env.PasswordFile)
 	if env.XMPPServer != "" {
 		param = append(param, "--xmpp-server="+env.XMPPServer)

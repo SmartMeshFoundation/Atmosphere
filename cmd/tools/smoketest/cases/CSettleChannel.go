@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/SmartMeshFoundation/Photon/cmd/tools/smoketest/models"
-	"github.com/SmartMeshFoundation/Photon/network/rpc/contracts"
+	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/smoketest/models"
+	"github.com/SmartMeshFoundation/Atmosphere/contracts"
 )
 
 // SettleChannelTest : test case for settle a channel

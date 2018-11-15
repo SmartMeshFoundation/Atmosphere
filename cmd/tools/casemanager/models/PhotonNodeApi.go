@@ -7,14 +7,13 @@ import (
 
 	"fmt"
 
-	"github.com/SmartMeshFoundation/Photon/cmd/tools/smoketest/models"
-	models2 "github.com/SmartMeshFoundation/Photon/models"
-	"github.com/SmartMeshFoundation/Photon/utils"
+	"github.com/SmartMeshFoundation/Atmosphere/models"
+	"github.com/SmartMeshFoundation/Atmosphere/utils"
 )
 
 // GetChannelWith :
 func (node *PhotonNode) GetChannelWith(partnerNode *PhotonNode, tokenAddr string) *Channel {
-	req := &models.Req{
+	req := &Req{
 		FullURL: node.Host + "/api/1/channels",
 		Method:  http.MethodGet,
 		Payload: "",
@@ -44,7 +43,7 @@ func (node *PhotonNode) GetChannelWith(partnerNode *PhotonNode, tokenAddr string
 
 // GetChannels :
 func (node *PhotonNode) GetChannels(tokenAddr string) []*Channel {
-	req := &models.Req{
+	req := &Req{
 		FullURL: node.Host + "/api/1/channels",
 		Method:  http.MethodGet,
 		Payload: "",
@@ -399,7 +398,7 @@ func (node *PhotonNode) UpdateMeshNetworkNodes(nodes ...*PhotonNode) {
 }
 
 // SetFeePolicy :
-func (node *PhotonNode) SetFeePolicy(fp *models2.FeePolicy) error {
+func (node *PhotonNode) SetFeePolicy(fp *models.FeePolicy) error {
 	req := &Req{
 		FullURL: node.Host + "/api/1/fee_policy",
 		Method:  http.MethodPost,

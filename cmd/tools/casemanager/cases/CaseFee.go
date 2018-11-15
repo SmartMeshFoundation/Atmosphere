@@ -1,7 +1,7 @@
 package cases
 
 import (
-	"github.com/SmartMeshFoundation/Photon/cmd/tools/casemanager/models"
+	"github.com/SmartMeshFoundation/Atmosphere/cmd/tools/casemanager/models"
 )
 
 // CaseFee : test for fee module

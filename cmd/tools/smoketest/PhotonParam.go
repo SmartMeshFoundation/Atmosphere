@@ -12,7 +12,7 @@ type PhotonParam struct {
 	//key address of the Account
 	keystorePath string
 	//Contract address
-	registryContractAddress string
+	tokenNetworkAddress string
 	//The key and password file of the account
 	passwordFile string
 	//XMPP server
@@ -33,7 +33,7 @@ func (rp *PhotonParam) getParam() []string {
 	param = append(param, "--listen-address="+rp.listenAddress)
 	param = append(param, "--address="+rp.address)
 	param = append(param, "--keystore-path="+rp.keystorePath)
-	param = append(param, "--registry-contract-address="+rp.registryContractAddress)
+	param = append(param, "--token-network-address="+rp.tokenNetworkAddress)
 	param = append(param, "--password-file="+rp.passwordFile)
 	param = append(param, "--eth-rpc-endpoint="+rp.ethRPCEndpoint)
 	param = append(param, "--verbosity=5")

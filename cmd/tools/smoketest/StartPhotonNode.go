@@ -91,7 +91,7 @@ func ExecShell(cmdstr string, param []string, logfile string, canquit bool) bool
 }
 
 // StartPhotonNode : start atmosphere
-func StartPhotonNode(RegistryAddress string) {
+func StartPhotonNode(TokenNetworkAddress string) {
 	paramsSection := "PHOTON_PARAMS"
 	var pstr []string
 	//public parameter
@@ -119,11 +119,11 @@ func StartPhotonNode(RegistryAddress string) {
 	}
 	param.datadir = c.RdString(paramsSection, "datadir", "/smtwork/share/.atmosphere")
 	param.keystorePath = c.RdString(paramsSection, "keystore_path", "/smtwork/privnet3/data/keystore")
-	if RegistryAddress == "" {
-		param.registryContractAddress = c.RdString(paramsSection, "registry_contract_address", "")
+	if TokenNetworkAddress == "" {
+		param.tokenNetworkAddress = c.RdString(paramsSection, "token_network_address", "")
 
 	} else {
-		param.registryContractAddress = RegistryAddress
+		param.tokenNetworkAddress = TokenNetworkAddress
 	}
 
 	param.passwordFile = c.RdString(paramsSection, "password_file", "")
@@ -131,7 +131,7 @@ func StartPhotonNode(RegistryAddress string) {
 	param.debug = c.RdBool(paramsSection, "debug", true)
 	//start 6 atmosphere node
 	var NODE string
-	exepath := c.RdString(paramsSection, "photonpath", "")
+	exepath := c.RdString(paramsSection, "atmosphere_path", "")
 	for i := 0; i < 6; i++ {
 		NODE = "N" + strconv.Itoa(i)
 		param.apiAddress = "0.0.0.0:60" + fmt.Sprintf("%02d", i)
