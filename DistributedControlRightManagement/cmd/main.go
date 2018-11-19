@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/DistributedControlRightManagement/kgcenter"
+	"github.com/SmartMeshFoundation/Atmosphere/DistributedControlRightManagement/kgcenter"
 )
 
 func main() {

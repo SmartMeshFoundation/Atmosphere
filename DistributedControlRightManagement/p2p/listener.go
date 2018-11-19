@@ -2,7 +2,7 @@ package p2p
 
 import (
 	"net"
-	"github.com/DistributedControlRightManagement/configs"
+	"github.com/SmartMeshFoundation/Atmosphere/DistributedControlRightManagement/configs"
 	"github.com/sirupsen/logrus"
 	"github.com/tendermint/tmlibs/common"
 )

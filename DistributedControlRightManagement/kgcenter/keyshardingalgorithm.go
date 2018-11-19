@@ -12,7 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"encoding/hex"
 	"github.com/tendermint/go-crypto/tmhash"
-	"github.com/DistributedControlRightManagement/configs"
+	"github.com/SmartMeshFoundation/Atmosphere/DistributedControlRightManagement/configs"
 )
 
 //lock -in

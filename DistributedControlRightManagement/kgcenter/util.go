@@ -5,10 +5,10 @@ import (
 	"math/rand"
 	"time"
 	"crypto/sha256"
-	"github.com/fusion/common/math"
 	//"github.com/Roasbeef/go-go-gadget-paillier"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	crand "crypto/rand"
+	"github.com/ethereum/go-ethereum/common/math"
 )
 
 func ModPowInsecure(base,exponent,modulus *big.Int) *big.Int{
