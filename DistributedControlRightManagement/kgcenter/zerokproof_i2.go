@@ -40,7 +40,6 @@ func (zkp *Zkpi2)Initialization(params *PublicParameters,
 	cx,cy,
 	w,u ,randomness *big.Int,
 ){
-	//(x)y均表示幂运算：x为底数 y为指数
 	var N= params.paillierPubKey.N
 	var q= secp256k1.S256().N
 	var nSquared= new(big.Int).Mul(N, N)
@@ -144,15 +143,12 @@ func (zkp *Zkpi2) verify(params *PublicParameters,BitCurve *secp256k1.BitCurve,
 	rx,ry,
 	u *big.Int,w *big.Int) bool {
 
-	//cx := secp256k1.S256().Gx
-	//cy := secp256k1.S256().Gy
 	h1 := params.h1
 	h2 := params.h2
 	N := params.paillierPubKey.N
 	nTilde := params.nTilde
 	nSquared := new(big.Int).Mul(N,N)
-	one,_ := new(big.Int).SetString("1",10)
-	g := new(big.Int).Add(N,one)
+	g := new(big.Int).Add(N, big.NewInt(1))
 	q := secp256k1.S256().N
 	var bitC=&ECPoint{
 		X:secp256k1.S256().Gx,
@@ -170,38 +166,38 @@ func (zkp *Zkpi2) verify(params *PublicParameters,BitCurve *secp256k1.BitCurve,
 		select {
 		case checkU1 := <-finishedi2U1:
 			if checkU1 == false {
-				logrus.Error("Zero KnowLedge Proof(I2) failed when checking value(u1)")
+				logrus.Error("[LOCK-OUT]Zero KnowLedge Proof(I2) failed when checking value(u1)")
 				return false
 			}
-			logrus.Info("Zero KnowLedge Proof(I2) Success when checking value(u1)")
+			logrus.Info("[LOCK-OUT]Zero KnowLedge Proof(I2) Success when checking value(u1)")
 			valueCheckPassed--
 		case checkU3 := <-finishedi2U3:
 			if checkU3 == false {
-				logrus.Info("Zero KnowLedge Proof(I2) failed when checking value(u3)")
+				logrus.Info("[LOCK-OUT]Zero KnowLedge Proof(I2) failed when checking value(u3)")
 				return false
 			}
-			logrus.Info("Zero KnowLedge Proof(I2) Success when checking value(u3)")
+			logrus.Info("[LOCK-OUT]Zero KnowLedge Proof(I2) Success when checking value(u3)")
 			valueCheckPassed--
 		case checkV1 := <-finishedi2V1:
 			if checkV1 == false {
-				logrus.Info("Zero KnowLedge Proof(I2) failed when checking value(v1)")
+				logrus.Info("[LOCK-OUT]Zero KnowLedge Proof(I2) failed when checking value(v1)")
 				return false
 			}
-			logrus.Info("Zero KnowLedge Proof(I2) Success when checking value(v1)")
+			logrus.Info("[LOCK-OUT]Zero KnowLedge Proof(I2) Success when checking value(v1)")
 			valueCheckPassed--
 		case checkV3 := <-finishedi2V3:
 			if checkV3 == false {
-				logrus.Info("Zero KnowLedge Proof(I2) failed when checking value(v3)")
+				logrus.Info("[LOCK-OUT]Zero KnowLedge Proof(I2) failed when checking value(v3)")
 				return false
 			}
-			logrus.Info("Zero KnowLedge Proof(I2) Success when checking value(v3)")
+			logrus.Info("[LOCK-OUT]Zero KnowLedge Proof(I2) Success when checking value(v3)")
 			valueCheckPassed--
 		case checkE := <-finishedi2E:
 			if checkE == false {
-				logrus.Info("Zero KnowLedge Proof(I2) failed when checking value(e)")
+				logrus.Info("[LOCK-OUT]Zero KnowLedge Proof(I2) failed when checking value(e)")
 				return false
 			}
-			logrus.Info("Zero KnowLedge Proof(I2) Success when checking value(e)")
+			logrus.Info("[LOCK-OUT]Zero KnowLedge Proof(I2) Success when checking value(e)")
 			valueCheckPassed--
 		}
 
@@ -215,7 +211,6 @@ func (zkp *Zkpi2) verify(params *PublicParameters,BitCurve *secp256k1.BitCurve,
 func (zkp *Zkpi2) checkU1(cx,cy *big.Int,rx,ry *big.Int) {
 
 	x1 := new(big.Int).Mul(new(big.Int).SetBytes(Get2Bytes(cx, cx)), zkp.s1)
-	//fmt.Println(configs.G.P.BitLen())
 	var nege = new(big.Int).Neg(zkp.e)
 	x2 := new(big.Int).Mul(new(big.Int).SetBytes(Get2Bytes(rx, rx)), nege)
 	result := new(big.Int).Add(x1, x2)
@@ -231,7 +226,6 @@ func (zkp *Zkpi2) checkU1(cx,cy *big.Int,rx,ry *big.Int) {
 		finishedi2U1 <- false
 		return
 	}
-	//finishedi2U1 <- true
 }
 
 func (zkp *Zkpi2) checkU3(h1 ,nTilde,h2 *big.Int) {

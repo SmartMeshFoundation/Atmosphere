@@ -9,7 +9,6 @@ import (
 	//"github.com/Roasbeef/go-go-gadget-paillier"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	crand "crypto/rand"
-	"github.com/SmartMeshFoundation/DCRM/util"
 )
 
 func ModPowInsecure(base,exponent,modulus *big.Int) *big.Int{
@@ -57,7 +56,7 @@ func Sha256Hash(inputs ...[]byte ) []byte {
 }
 
 func isProbablePrime(num *big.Int) bool {
-	return true
+	return  num.ProbablyPrime(0)
 }
 
 /*func GenerateParams(k,kPrime int,rand *rand.Rand,paillierPubKey  *paillier.PublicKey) (pp *PublicParameters) {
@@ -123,9 +122,9 @@ func GenerateParams(BitCurve *secp256k1.BitCurve,primeCertainty int32,kPrime int
 	}
 
 	nHat = new(big.Int).Mul(p,q)
-	h2 := util.RandomFromZnStar(nHat,rnd)
+	h2 := RandomFromZnStar(nHat)
 	pPrimeqPrime = new(big.Int).Mul(pPrime,qPrime)
-	x := util.RandomFromZn(pPrimeqPrime, rnd)
+	x := RandomFromZn(pPrimeqPrime)
 	h1 := ModPowInsecure(h2,x,nHat)
 	pparms := new(PublicParameters)
 	pparms.Initialization(BitCurve,nHat,kPrime, h1, h2, paillierPubKey)

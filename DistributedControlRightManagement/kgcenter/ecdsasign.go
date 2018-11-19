@@ -2,9 +2,9 @@ package kgcenter
 
 import (
 	"math/big"
-	"fmt"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
+	"github.com/sirupsen/logrus"
 )
 
 type ECDSASignature struct {
@@ -56,11 +56,13 @@ func (ecds *ECDSASignature) verify(message string,pkx *big.Int,pky *big.Int) boo
 	xR := new(big.Int).Mod(xxx,secp256k1.S256().N)
 
 	if xR.Cmp(ecds.r) == 0 {
-		fmt.Println("ECDSA Signature Verify Passed! (r,s) is a Valid Siganture!\n",ecds.r,ecds.s);
+		logrus.Info("ECDSA Signature Verify Passed! (r,s) is a Valid Siganture!")
+		logrus.Info("(r,s) r=",ecds.r)
+		logrus.Info("(r,s) s=",ecds.s)
 		return true
 	}
 
-	fmt.Println("ERROR: ECDSA Signature Verify NOT Passed! (r,s) is a InValid Siganture!\n",ecds.r,ecds.s);
+	logrus.Error("ERROR: ECDSA Signature Verify NOT Passed! ");
 	return false
 }
 

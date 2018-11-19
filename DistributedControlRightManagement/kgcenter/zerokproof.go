@@ -133,31 +133,31 @@ func (zkp *Zkp)Verify(params *PublicParameters,rx,ry,
 		select {
 		case checkU1 := <-finishedU1:
 			if checkU1 == false {
-				logrus.Error("Zero KnowLedge Proof failed when checking value(u1)")
+				logrus.Error("[LOCK-IN]Zero KnowLedge Proof failed when checking value(u1)")
 				return false
 			}
-			logrus.Info("Zero KnowLedge Proof Success when checking value(u1)")
+			logrus.Info("[LOCK-IN]Zero KnowLedge Proof Success when checking value(u1)")
 			valueCheckPassed--
 		case checkU2 := <-finishedU2:
 			if checkU2 == false {
-				logrus.Error("Zero KnowLedge Proof failed when checking value(u2)")
+				logrus.Error("[LOCK-IN]Zero KnowLedge Proof failed when checking value(u2)")
 				return false
 			}
-			logrus.Info("Zero KnowLedge Proof Success when checking value(u2)")
+			logrus.Info("[LOCK-IN]Zero KnowLedge Proof Success when checking value(u2)")
 			valueCheckPassed--
 		case checkV := <-finishedU3:
 			if checkV == false {
-				logrus.Error("Zero KnowLedge Proof failed when checking value(u3)")
+				logrus.Error("[LOCK-IN]Zero KnowLedge Proof failed when checking value(u3)")
 				return false
 			}
-			logrus.Info("Zero KnowLedge Proof Success when checking value(u3)")
+			logrus.Info("[LOCK-IN]Zero KnowLedge Proof Success when checking value(u3)")
 			valueCheckPassed--
 		case checkE := <-finishedE:
 			if checkE == false {
-				logrus.Error("Zero KnowLedge Proof failed when checking value(e)")
+				logrus.Error("[LOCK-IN]Zero KnowLedge Proof failed when checking value(e)")
 				return false
 			}
-			logrus.Info("Zero KnowLedge Proof Success when checking value(e)")
+			logrus.Info("[LOCK-IN]Zero KnowLedge Proof Success when checking value(e)")
 			valueCheckPassed--
 		}
 		if valueCheckPassed == 0 {
@@ -183,7 +183,6 @@ func (zkp *Zkp)checkU1(bx,by, rx,ry,nTilde *big.Int) {
 	//fmt.Println("bb:",subReuslt)
 	subReuslt=new(big.Int).Abs(subReuslt)
 	if subReuslt.Cmp(big.NewInt(0))==0 ||subReuslt.Cmp(big.NewInt(1))==0{
-	//if result.Cmp(zkp.u1) == 0 {
 		finishedU1 <- true
 		return
 	} else {

@@ -1,1 +1,1 @@
-# DistributedControlRightManagement
+# ControlRightManagement

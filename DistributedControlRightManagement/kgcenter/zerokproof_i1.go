@@ -31,7 +31,6 @@ func (zkp *Zkpi1)Initialization(params *PublicParameters,
 	rand *rand.Rand,
 	r ,c1 ,c2 ,c3 *big.Int,
 ) {
-	//(x)y均表示幂运算：x为底数 y为指数
 	var N= params.paillierPubKey.N
 	var q= secp256k1.S256().N
 	var nSquared= new(big.Int).Mul(N, N)
@@ -107,31 +106,31 @@ func (zkp *Zkpi1)verify(params *PublicParameters,
 		select {
 		case checkU1 := <-finishedi1U1:
 			if checkU1 == false {
-				logrus.Error("Zero KnowLedge Proof(I1) failed when checking value(u1)")
+				logrus.Error("[LOCK-OUT]Zero KnowLedge Proof(I1) failed when checking value(u1)")
 				return false
 			}
-			logrus.Info("Zero KnowLedge Proof(I1) Success when checking value(u1)")
+			logrus.Info("[LOCK-OUT]Zero KnowLedge Proof(I1) Success when checking value(u1)")
 			valueCheckPassed--
 		case checkU2 := <-finishedi1U2:
 			if checkU2 == false {
-				logrus.Error("Zero KnowLedge Proof(I1) failed when checking value(u2)")
+				logrus.Error("[LOCK-OUT]Zero KnowLedge Proof(I1) failed when checking value(u2)")
 				return false
 			}
-			logrus.Info("Zero KnowLedge Proof(I1) Success when checking value(u2)")
+			logrus.Info("[LOCK-OUT]Zero KnowLedge Proof(I1) Success when checking value(u2)")
 			valueCheckPassed--
 		case checkV := <-finishedi1V:
 			if checkV == false {
-				logrus.Error("Zero KnowLedge Proof(I1) failed when checking value(v)")
+				logrus.Error("[LOCK-OUT]Zero KnowLedge Proof(I1) failed when checking value(v)")
 				return false
 			}
-			logrus.Info("Zero KnowLedge Proof(I1) Success when checking value(v)")
+			logrus.Info("[LOCK-OUT]Zero KnowLedge Proof(I1) Success when checking value(v)")
 			valueCheckPassed--
 		case checkE := <-finishedi1E:
 			if checkE == false {
-				logrus.Error("Zero KnowLedge Proof(I1) failed when checking value(e)")
+				logrus.Error("[LOCK-OUT]Zero KnowLedge Proof(I1) failed when checking value(e)")
 				return false
 			}
-			logrus.Error("Zero KnowLedge Proof(I1) Success when checking value(e)")
+			logrus.Info("[LOCK-OUT]Zero KnowLedge Proof(I1) Success when checking value(e)")
 			valueCheckPassed--
 		}
 		if valueCheckPassed == 0 {

@@ -19,6 +19,6 @@ var(
 	Ip4="192.168.124.10"
 )
 
-var ThresholdNum=8
+var ThresholdNum=100
 
 var G=secp256k1.S256()

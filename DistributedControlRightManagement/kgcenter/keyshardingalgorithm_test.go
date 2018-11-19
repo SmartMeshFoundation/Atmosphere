@@ -59,7 +59,7 @@ C：加密运算和离散点的来源：
    解密：M + rK - k(rG) = M + r(kG) - k(rG) = M
   也就是说：alice选择椭圆曲线来加密(比如算法ECDSA)，设私钥、公钥分别为k、K，即K = kG，其中G为G点,h为消息的hash值
 	alice选择了个r(随机数),计算点rG(x,y)
-`	alice计算出一个s， s=(hash(消息M)+kx)/r -->s=(h+kx)r
+`	alice计算出一个s， s=(hash(消息M)+kx)/r -->s=(h+kx)/r
     alice讲消息M、签名{rG,s}发送给bob
     bob收到了alice发过来的消息M、签名{rG(x,y),s}
     bob根据消息M,求得一个h=hash(M)

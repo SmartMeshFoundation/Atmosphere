@@ -12,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"encoding/hex"
 	"github.com/tendermint/go-crypto/tmhash"
-	"github.com/SmartMeshFoundation/DCRM/util"
 	"github.com/DistributedControlRightManagement/configs"
 )
 
@@ -248,8 +247,8 @@ func LockoutCalcCommitment(peers *list.List,encX *big.Int) {
 	var cmtUiVi *Commitment
 	a := 0
 	for e := peers.Front(); e != nil; e = e.Next() {
-		rhoI = util.RandomFromZn(secp256k1.S256().N, SecureRnd)
-		rhoIRnd = util.RandomFromZnStar((&PaillierPrivateKey.PublicKey).N, SecureRnd)
+		rhoI = RandomFromZn(secp256k1.S256().N)
+		rhoIRnd = RandomFromZnStar((&PaillierPrivateKey.PublicKey).N)
 		uI = encrypt((&PaillierPrivateKey.PublicKey), rhoI, rhoIRnd)
 		vI = cipherMultiply((&PaillierPrivateKey.PublicKey), encX, rhoI)
 
@@ -341,15 +340,15 @@ func LockoutCalcCommitmentOfSign(peers *list.List)  {
 	}
 	a:= 0
 	for e := peers.Front(); e != nil; e = e.Next() {
-		kI := util.RandomFromZn(secp256k1.S256().N, SecureRnd)
+		kI := RandomFromZn(secp256k1.S256().N)
 		if kI.Sign() == -1 {
 			kI.Add(kI,secp256k1.S256().P)
 		}
 		rI := make([]byte, 32)
 		math.ReadBits(kI, rI[:])
 		rIx,rIy := KMulG(rI[:])
-		cI := util.RandomFromZn(secp256k1.S256().N, SecureRnd)
-		cIRnd := util.RandomFromZnStar((&PaillierPrivateKey.PublicKey).N,SecureRnd)
+		cI := RandomFromZn(secp256k1.S256().N)
+		cIRnd := RandomFromZnStar((&PaillierPrivateKey.PublicKey).N)
 		mask := encrypt((&PaillierPrivateKey.PublicKey),new(big.Int).Mul(secp256k1.S256().N, cI),cIRnd)
 		wI := cipherAdd((&PaillierPrivateKey.PublicKey),cipherMultiply((&PaillierPrivateKey.PublicKey),u, kI), mask)
 		rIs := secp256k1.S256().Marshal(rIx,rIy)
@@ -518,7 +517,6 @@ func calculateW(peers *list.List) *big.Int {
 		wi := ((e.Value).(*ProverInfo)).getOpenRiWi().GetSecrets()[1]
 		w = cipherAdd((&PaillierPrivateKey.PublicKey),w,wi);
 	}
-	//fmt.Println("Calculate the Encrypted Inner-Data w: ",w)
 	return w
 }
 
