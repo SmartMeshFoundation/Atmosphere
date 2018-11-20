@@ -2,22 +2,23 @@ package p2p
 
 import (
 	"net"
+
 	"github.com/SmartMeshFoundation/Atmosphere/DistributedControlRightManagement/configs"
 	"github.com/sirupsen/logrus"
 	"github.com/tendermint/tmlibs/common"
 )
 
 type NetAddress struct {
-	ID string
-	IP net.IP
-	Port uint
+	ID     string
+	IP     net.IP
+	Port   uint
 	Remark string
 }
 
 type SvrListenSocket struct {
-	listener net.Listener
+	listener     net.Listener
 	localAddress *NetAddress
-	connections chan net.Conn
+	connections  chan net.Conn
 	common.BaseService
 }
 
@@ -43,12 +44,12 @@ func InitListenService() (lsn *SvrListenSocket) {
 }
 
 func (sls *SvrListenSocket) OnStart() error {
-	 err:=sls.BaseService.OnStart()
-	 if err!=nil{
-	 	return err
-	 }
-	 go sls.AsyncCallback()
-	 return nil
+	err := sls.BaseService.OnStart()
+	if err != nil {
+		return err
+	}
+	go sls.AsyncCallback()
+	return nil
 }
 
 func (sls *SvrListenSocket) OnStop() {
@@ -57,7 +58,7 @@ func (sls *SvrListenSocket) OnStop() {
 }
 
 //只接受认可的机器来互相通信
-func (sls *SvrListenSocket)AsyncCallback() {
+func (sls *SvrListenSocket) AsyncCallback() {
 	for {
 		if sls.IsRunning() {
 			break
@@ -70,4 +71,13 @@ func (sls *SvrListenSocket)AsyncCallback() {
 		sls.connections <- endPointConn
 	}
 	close(sls.connections)
+}
+
+func (sls *SvrListenSocket) SendMessage() {
+
+}
+
+//心跳
+func (sls *SvrListenSocket) SendNetLinkMsg() {
+
 }

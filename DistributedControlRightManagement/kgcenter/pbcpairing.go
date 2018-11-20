@@ -1,43 +1,45 @@
 package kgcenter
 
 import (
-	"fmt"
-	"math/rand"
-	"math/big"
 	"crypto/sha256"
-	"github.com/ethereum/go-ethereum/common/math"
+	"fmt"
+	"math/big"
+	"math/rand"
+
 	"github.com/Nik-U/pbc"
+	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/sirupsen/logrus"
 )
+
 type Commitment struct {
 	committment *pbc.Element
-	pubkey *pbc.Element
+	pubkey      *pbc.Element
 }
 
 //MultiTrapdoorCommitment
 type MultiTrapdoorCommitment struct {
 	commitment *Commitment
-	open *Open
+	open       *Open
 }
 
 type Open struct {
-	secrets []*big.Int
+	secrets    []*big.Int
 	randomness *pbc.Element
 }
 
 type CmtMasterPublicKey struct {
-	g *pbc.Element
-	q *big.Int
-	h *pbc.Element
+	g       *pbc.Element
+	q       *big.Int
+	h       *pbc.Element
 	pairing *pbc.Pairing
 }
 
-func (ct *Commitment) New(pubkey *pbc.Element,a *pbc.Element) {
+func (ct *Commitment) New(pubkey *pbc.Element, a *pbc.Element) {
 	ct.pubkey = pubkey
 	ct.committment = a
 }
 
-func (open *Open) New(randomness *pbc.Element,secrets []*big.Int) {
+func (open *Open) New(randomness *pbc.Element, secrets []*big.Int) {
 	open.randomness = randomness
 
 	open.secrets = secrets //test
@@ -51,13 +53,12 @@ func (open *Open) getRandomness() *pbc.Element {
 	return open.randomness
 }
 
-
-func (mtdct *MultiTrapdoorCommitment) New(commitment *Commitment,open *Open) {
+func (mtdct *MultiTrapdoorCommitment) New(commitment *Commitment, open *Open) {
 	mtdct.commitment = commitment
 	mtdct.open = open
 }
 
-func (cmpk *CmtMasterPublicKey) New(g *pbc.Element,q *big.Int,h *pbc.Element,pairing *pbc.Pairing) {
+func (cmpk *CmtMasterPublicKey) New(g *pbc.Element, q *big.Int, h *pbc.Element, pairing *pbc.Pairing) {
 	cmpk.g = g
 	cmpk.q = q
 	cmpk.h = h
@@ -84,13 +85,13 @@ public static MultiTrapdoorCommitment multilinnearCommit(Random rand,
 		return new MultiTrapdoorCommitment(commitment, open);
 
 }*/
-func MultiLinnearCommit(rnd *rand.Rand,mpk *CmtMasterPublicKey,secrets []*big.Int) *MultiTrapdoorCommitment {
+func MultiLinnearCommit(rnd *rand.Rand, mpk *CmtMasterPublicKey, secrets []*big.Int) *MultiTrapdoorCommitment {
 	e := mpk.pairing.NewZr()
 	e.Rand()
 	r := mpk.pairing.NewZr()
 	r.Rand()
 
-	h := func(target *pbc.Element,megs []string) {
+	h := func(target *pbc.Element, megs []string) {
 		hash := sha256.New()
 		for j := range megs {
 			hash.Write([]byte(megs[j]))
@@ -99,44 +100,44 @@ func MultiLinnearCommit(rnd *rand.Rand,mpk *CmtMasterPublicKey,secrets []*big.In
 		target.SetBig(i.SetBytes(hash.Sum([]byte{})))
 	}
 
-	secretsBytes := make([]string,len(secrets))
+	secretsBytes := make([]string, len(secrets))
 	for i := range secrets {
-		count := ((secrets[i].BitLen()+7)/8)
-		se := make([]byte,count)
+		count := ((secrets[i].BitLen() + 7) / 8)
+		se := make([]byte, count)
 		math.ReadBits(secrets[i], se[:])
 		secretsBytes[i] = string(se[:])
 	}
 
 	digest := mpk.pairing.NewZr()
-	h(digest,secretsBytes[:])
+	h(digest, secretsBytes[:])
 
 	ge := mpk.pairing.NewG1()
-	ge.MulZn(mpk.g,e)
+	ge.MulZn(mpk.g, e)
 
 	//he = mpk.h + ge
 	he := mpk.pairing.NewG1()
-	he.Add(mpk.h,ge)
+	he.Add(mpk.h, ge)
 
 	//he = r*he
 	rhe := mpk.pairing.NewG1()
-	rhe.MulZn(he,r)
+	rhe.MulZn(he, r)
 
 	//dg = digest*mpk.g
 	dg := mpk.pairing.NewG1()
 	//
-	dg.MulZn(mpk.g,digest)
+	dg.MulZn(mpk.g, digest)
 
 	//a = mpk.g + he
 	a := mpk.pairing.NewG1()
-	a.Add(dg,rhe)
+	a.Add(dg, rhe)
 
 	open := new(Open)
-	open.New(r,secrets)
+	open.New(r, secrets)
 	commitment := new(Commitment)
-	commitment.New(e,a)
+	commitment.New(e, a)
 
 	mtdct := new(MultiTrapdoorCommitment)
-	mtdct.New(commitment,open)
+	mtdct.New(commitment, open)
 
 	return mtdct
 }
@@ -149,31 +150,31 @@ func GenerateMasterPK() *CmtMasterPublicKey {
 	}
 
 	g := getBasePoint(pairing)
-	q,_ := new(big.Int).SetString("730750818665451459101842416358141509827966402561",10)
+	q, _ := new(big.Int).SetString("730750818665451459101842416358141509827966402561", 10)
 	h := RandomPointInG1(pairing)
 	cmpk := new(CmtMasterPublicKey)
-	cmpk.New(g,q,h,pairing)
+	cmpk.New(g, q, h, pairing)
 	return cmpk
 }
 
 func RandomPointInG1(pairing *pbc.Pairing) *pbc.Element {
-	for{
+	for {
 		h := pairing.NewG1()
 		h.Rand()
 
 		cof := pairing.NewZr()
-		num,_ := new(big.Int).SetString("10007920040268628970387373215664582404186858178692152430205359413268619141100079249246263148037326528074908",10)
+		num, _ := new(big.Int).SetString("10007920040268628970387373215664582404186858178692152430205359413268619141100079249246263148037326528074908", 10)
 		cof.SetBig(num)
 
 		hh := pairing.NewG1()
-		hh.MulZn(h,cof)
+		hh.MulZn(h, cof)
 
-		order,_ := new(big.Int).SetString("730750818665451459101842416358141509827966402561",10)
+		order, _ := new(big.Int).SetString("730750818665451459101842416358141509827966402561", 10)
 		q := pairing.NewZr()
 		q.SetBig(order)
 
 		hhh := pairing.NewG1()
-		hhh.MulZn(hh,q)
+		hhh.MulZn(hh, q)
 
 		if hhh.Is0() {
 			return hh
@@ -185,10 +186,10 @@ func RandomPointInG1(pairing *pbc.Pairing) *pbc.Element {
 func getBasePoint(pairing *pbc.Pairing) *pbc.Element {
 	var p *pbc.Element
 	cof := pairing.NewZr()
-	num,_ := new(big.Int).SetString("10007920040268628970387373215664582404186858178692152430205359413268619141100079249246263148037326528074908",10)
+	num, _ := new(big.Int).SetString("10007920040268628970387373215664582404186858178692152430205359413268619141100079249246263148037326528074908", 10)
 	cof.SetBig(num)
 
-	order,_ := new(big.Int).SetString("730750818665451459101842416358141509827966402561",10)
+	order, _ := new(big.Int).SetString("730750818665451459101842416358141509827966402561", 10)
 	q := pairing.NewZr()
 	q.SetBig(order)
 
@@ -196,10 +197,10 @@ func getBasePoint(pairing *pbc.Pairing) *pbc.Element {
 		p = pairing.NewG1()
 		p.Rand()
 		ge := pairing.NewG1()
-		ge.MulZn(p,cof)
+		ge.MulZn(p, cof)
 
 		pq := pairing.NewG1()
-		pq.MulZn(ge,q)
+		pq.MulZn(ge, q)
 
 		if ge.Is0() || pq.Is0() {
 			return ge
@@ -218,11 +219,11 @@ func (mtc *MultiTrapdoorCommitment) CmtCommitment() *Commitment {
 }
 
 //
-func Checkcommitment(commitment *Commitment,open *Open,mpk *CmtMasterPublicKey) bool {
+func Checkcommitment(commitment *Commitment, open *Open, mpk *CmtMasterPublicKey) bool {
 	g := mpk.g
 	h := mpk.h
 
-	f := func(target *pbc.Element,megs []string) {
+	f := func(target *pbc.Element, megs []string) {
 		hash := sha256.New()
 		for j := range megs {
 			hash.Write([]byte(megs[j]))
@@ -231,34 +232,34 @@ func Checkcommitment(commitment *Commitment,open *Open,mpk *CmtMasterPublicKey) 
 		target.SetBig(i.SetBytes(hash.Sum([]byte{})))
 	}
 
-	secrets := open.GetSecrets();
-	secretsBytes := make([]string,len(secrets))
+	secrets := open.GetSecrets()
+	secretsBytes := make([]string, len(secrets))
 	for i := range secrets {
-		count := ((secrets[i].BitLen()+7)/8)
-		se := make([]byte,count)
+		count := ((secrets[i].BitLen() + 7) / 8)
+		se := make([]byte, count)
 		math.ReadBits(secrets[i], se[:])
 		secretsBytes[i] = string(se[:])
 	}
 	//digest hash(h秘密)
 	digest := mpk.pairing.NewZr()
-	f(digest,secretsBytes[:])
+	f(digest, secretsBytes[:])
 	//g^a
 	rg := mpk.pairing.NewG1()
-	rg.MulZn(g,open.getRandomness())
+	rg.MulZn(g, open.getRandomness())
 	//(g,h)
 	d1 := mpk.pairing.NewG1()
-	d1.MulZn(g,commitment.pubkey)
+	d1.MulZn(g, commitment.pubkey)
 	//h^b
 	dh := mpk.pairing.NewG1()
-	dh.Add(h,d1)
+	dh.Add(h, d1)
 	//g(-digest)
 	gdn := mpk.pairing.NewG1()
 	digest.Neg(digest)
-	gdn.MulZn(g,digest)
+	gdn.MulZn(g, digest)
 	//a*b
 	comd := mpk.pairing.NewG1()
-	comd.Add(commitment.committment,gdn)
-	b := DDHTest(rg,dh,comd,g,mpk.pairing)
+	comd.Add(commitment.committment, gdn)
+	b := DDHTest(rg, dh, comd, g, mpk.pairing)
 	if b == false {
 		logrus.Error("Check commitment error")
 	}
@@ -267,14 +268,14 @@ func Checkcommitment(commitment *Commitment,open *Open,mpk *CmtMasterPublicKey) 
 
 //见 main2 pairing(g,h)^(a*b)
 //a=generator
-func DDHTest(a *pbc.Element,b *pbc.Element,c *pbc.Element,generator *pbc.Element,pairing *pbc.Pairing) bool {
+func DDHTest(a *pbc.Element, b *pbc.Element, c *pbc.Element, generator *pbc.Element, pairing *pbc.Pairing) bool {
 	/*temp1 := pairing.NewGT().Pair(h, pubKey)
 	temp2 := pairing.NewGT().Pair(signature, g)*/
 	temp1 := pairing.NewGT().Pair(a, b)
-	temp2 := pairing.NewGT().Pair(generator,c)
+	temp2 := pairing.NewGT().Pair(generator, c)
 
-	return temp1.Equals(temp2)//temp1=temp2
-}//f(x,y)=f(x)+f(y)
+	return temp1.Equals(temp2) //temp1=temp2
+} //f(x,y)=f(x)+f(y)
 /*
 如何用PBC library实现the Boneh-Lynn-Shacham (BLS) signature scheme
 基础说明：阶为质数r的三个群G1，G2，GT（定理：阶为质数的群都是循环群,）

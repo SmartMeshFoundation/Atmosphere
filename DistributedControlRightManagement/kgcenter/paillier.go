@@ -1,16 +1,16 @@
 package kgcenter
 
 import (
-"io"
-"math/big"
-"crypto/rand"
-"errors"
+	"crypto/rand"
+	"errors"
+	"io"
+	"math/big"
 )
 
 var one = big.NewInt(1)
 var ErrMessageTooLong = errors.New("paillier: message too long for Paillier public key size")
 
-func GenerateKey(random io.Reader,bits int) (*PrivateKey,error) {
+func GenerateKey(random io.Reader, bits int) (*PrivateKey, error) {
 	p, err := rand.Prime(random, bits)
 	if err != nil {
 		return nil, err
@@ -56,26 +56,26 @@ type PublicKey struct {
 //pubKey 公钥
 // m 明码
 // r 计算参数
-func encrypt(pubKey *PublicKey, m *big.Int,r *big.Int) *big.Int {
-	s,_ := Encrypt(pubKey,m.Bytes(),r)
+func encrypt(pubKey *PublicKey, m *big.Int, r *big.Int) *big.Int {
+	s, _ := Encrypt(pubKey, m.Bytes(), r)
 	return new(big.Int).SetBytes(s)
 }
 
 func decrypt(privKey *PrivateKey, c *big.Int) *big.Int {
-	s,_ := Decrypt(privKey,c.Bytes())
+	s, _ := Decrypt(privKey, c.Bytes())
 	return new(big.Int).SetBytes(s)
 }
-func cipherAdd(pubKey *PublicKey,c1 *big.Int,c2 *big.Int) *big.Int {
-	s := AddCipher(pubKey,c1.Bytes(),c2.Bytes())
+func cipherAdd(pubKey *PublicKey, c1 *big.Int, c2 *big.Int) *big.Int {
+	s := AddCipher(pubKey, c1.Bytes(), c2.Bytes())
 	return new(big.Int).SetBytes(s)
 }
-func cipherMultiply(pubKey *PublicKey,c1 *big.Int,cons *big.Int) *big.Int {
-	s := Mul(pubKey,c1.Bytes(),cons.Bytes())
+func cipherMultiply(pubKey *PublicKey, c1 *big.Int, cons *big.Int) *big.Int {
+	s := Mul(pubKey, c1.Bytes(), cons.Bytes())
 	return new(big.Int).SetBytes(s)
 }
 
 // c = g^m * r^n mod n^2
-func Encrypt(pubKey *PublicKey, plainText []byte,r *big.Int) ([]byte, error) {
+func Encrypt(pubKey *PublicKey, plainText []byte, r *big.Int) ([]byte, error) {
 
 	m := new(big.Int).SetBytes(plainText)
 	if pubKey.N.Cmp(m) < 1 { // N < m
@@ -160,4 +160,3 @@ func Mul(pubKey *PublicKey, cipher []byte, constant []byte) []byte {
 	// c ^ x mod n^2
 	return new(big.Int).Exp(c, x, pubKey.NSquared).Bytes()
 }
-

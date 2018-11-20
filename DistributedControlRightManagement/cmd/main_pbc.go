@@ -1,8 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"crypto/sha256"
+	"fmt"
+
 	"github.com/Nik-U/pbc"
 )
 
@@ -24,17 +25,19 @@ type messageData struct {
 	message   string
 	signature []byte
 }
-var(
-	ip1="192.168.124.13"
-	ip2="192.168.124.15"
-	ip3="192.168.124.2"
-	ip4="192.168.124.10"
+
+var (
+	ip1 = "192.168.124.13"
+	ip2 = "192.168.124.15"
+	ip3 = "192.168.124.2"
+	ip4 = "192.168.124.10"
 )
+
 //计算和验证alice和bob模拟通信中的pbc短签名（Boneh-Lynn-Shacham signature）
 func main() {
 	//权限生成系统参数
 	//在实际应用中，只需生成一次并发布它
-	params := pbc.GenerateA(160, 512)//
+	params := pbc.GenerateA(160, 512) //
 	//实例化一个pair(赋随机参数)
 	pairing := params.NewPairing()
 	g := pairing.NewG2().Rand()

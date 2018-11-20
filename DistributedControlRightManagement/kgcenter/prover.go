@@ -6,33 +6,33 @@ import (
 
 type ProverInfo struct {
 	xShare, xShareRnd, encXShare *big.Int
-	yShare_x *big.Int
-	yShare_y *big.Int
+	yShare_x                     *big.Int
+	yShare_y                     *big.Int
 
-	mpkEncXiYi *MultiTrapdoorCommitment
+	mpkEncXiYi  *MultiTrapdoorCommitment
 	openEncXiYi *Open
-	cmtEncXiYi *Commitment
+	cmtEncXiYi  *Commitment
 
 	zkpKG *Zkp
-	encX *big.Int
+	encX  *big.Int
 
 	pk_x *big.Int
 	pk_y *big.Int
 
 	rhoI, rhoIRnd, uI, vI *big.Int
-	mpkUiVi *MultiTrapdoorCommitment
-	openUiVi *Open
-	cmtUiVi *Commitment
+	mpkUiVi               *MultiTrapdoorCommitment
+	openUiVi              *Open
+	cmtUiVi               *Commitment
 
-	zkp1 *Zkpi1
+	zkp1          *Zkpi1
 	kI, cI, cIRnd *big.Int
-	rI_x *big.Int
-	rI_y *big.Int
+	rI_x          *big.Int
+	rI_y          *big.Int
 
 	mask, wI *big.Int
-	mpkRiWi *MultiTrapdoorCommitment
+	mpkRiWi  *MultiTrapdoorCommitment
 	openRiWi *Open
-	cmtRiWi *Commitment
+	cmtRiWi  *Commitment
 
 	zkp_i2 *Zkpi2
 }
@@ -41,11 +41,11 @@ func (pi *ProverInfo) getxShare() *big.Int {
 	return pi.xShare
 }
 
-func (pi *ProverInfo)  setxShare(xShare *big.Int) {
+func (pi *ProverInfo) setxShare(xShare *big.Int) {
 	pi.xShare = xShare
 }
 
-func (pi *ProverInfo)  getxShareRnd() *big.Int {
+func (pi *ProverInfo) getxShareRnd() *big.Int {
 	return pi.xShareRnd
 }
 
@@ -161,7 +161,7 @@ func (pi *ProverInfo) getMpkUiVi() *MultiTrapdoorCommitment {
 	return pi.mpkUiVi
 }
 
-func (pi *ProverInfo) setMpkUiVi(mpkUiVi *MultiTrapdoorCommitment)  {
+func (pi *ProverInfo) setMpkUiVi(mpkUiVi *MultiTrapdoorCommitment) {
 	pi.mpkUiVi = mpkUiVi
 }
 
@@ -169,7 +169,7 @@ func (pi *ProverInfo) getCmtUiVi() *Commitment {
 	return pi.cmtUiVi
 }
 
-func (pi *ProverInfo) setCmtUiVi(cmtUiVi *Commitment)  {
+func (pi *ProverInfo) setCmtUiVi(cmtUiVi *Commitment) {
 	pi.cmtUiVi = cmtUiVi
 }
 
@@ -190,11 +190,11 @@ func (pi *ProverInfo) getrI_y() *big.Int {
 }
 
 func (pi *ProverInfo) setrI_x(rI_x *big.Int) {
-	pi.rI_x = rI_x;
+	pi.rI_x = rI_x
 }
 
 func (pi *ProverInfo) setrI_y(rI_y *big.Int) {
-	pi.rI_y = rI_y;
+	pi.rI_y = rI_y
 }
 
 func (pi *ProverInfo) getMask() *big.Int {

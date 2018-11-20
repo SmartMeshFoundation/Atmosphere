@@ -19,12 +19,12 @@ type ECPoint struct {
 	Y *big.Int
 }
 
-func (pp *PublicParameters)Initialization(curve *secp256k1.BitCurve,
+func (pp *PublicParameters) Initialization(curve *secp256k1.BitCurve,
 	nTilde *big.Int,
 	kPrime int32,
-	h1,h2 *big.Int,
+	h1, h2 *big.Int,
 	paillierPubKey *PublicKey,
-	) {
+) {
 	//pp.gRaw=curve.Encode()
 	pp.nTilde = nTilde
 	pp.h1 = h1
