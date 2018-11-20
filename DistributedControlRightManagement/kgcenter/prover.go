@@ -42,7 +42,7 @@ func (pi *ProverInfo) getxShare() *big.Int {
 }
 
 func (pi *ProverInfo) setxShare(xShare *big.Int) {
-	pi.xShare = xShare
+	pi.xShare = xShare //设置的就是私钥片
 }
 
 func (pi *ProverInfo) getxShareRnd() *big.Int {
@@ -138,7 +138,7 @@ func (pi *ProverInfo) getEncXShare() *big.Int {
 }
 
 func (pi *ProverInfo) setEncXShare(encXShare *big.Int) {
-	pi.encXShare = encXShare
+	pi.encXShare = encXShare //加密的私钥片
 }
 
 func (pi *ProverInfo) getyShare_x() *big.Int {

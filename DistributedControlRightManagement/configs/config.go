@@ -23,7 +23,7 @@ var (
 	Ip4 = "192.168.124.10"
 )
 
-var ThresholdNum = 100
+var ThresholdNum = 10
 
 var G = secp256k1.S256()
 

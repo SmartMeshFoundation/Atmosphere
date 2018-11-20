@@ -2,12 +2,17 @@ package kgcenter
 
 import (
 	"container/list"
-
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	mathrand "math/rand"
 	"time"
+
+	"github.com/SmartMeshFoundation/Atmosphere/utils"
+	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/SmartMeshFoundation/Atmosphere/DistributedControlRightManagement/configs"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -35,9 +40,16 @@ func LockOut() {
 	logrus.Info("*********************************************LOCK OUT************************************************")
 	mappingReq := "013d55da472b04a674955d947932d3aee25beba25a7cea60b4d7472d98a76d09"
 	signature := Sign(dcrmList, EncX, mappingReq)
-	logrus.Info("[LOCK-OUT]ECDSA(R,S,V) R=", signature.r)
-	logrus.Info("[LOCK-OUT]ECDSA(R,S,V) S=", signature.s)
+	logrus.Info("[LOCK-OUT]ECDSA(R,S,V) R=", signature.r.Text(16))
+	logrus.Info("[LOCK-OUT]ECDSA(R,S,V) S=", signature.s.Text(16))
 	logrus.Info("[LOCK-OUT]ECDSA(R,S,V) V=", signature.GetRecoveryParam())
+	sigBytes := signature.ToBytes()
+	logrus.Info("sigbytes=%s", hex.EncodeToString(sigBytes))
+	addr, err := utils.Ecrecover(common.HexToHash(mappingReq), sigBytes)
+	if err != nil {
+		panic(fmt.Sprintf("verify si error %s", err))
+	}
+	logrus.Info("lockout addr=%s", addr.String())
 	if signature != nil {
 		if signature.verify(mappingReq, PkX, PkY) {
 			logrus.Info("[LOCK-OUT]Signature verified passed")
@@ -76,16 +88,17 @@ var peerInfo map[int]*ProverInfo
 func LockinKeyGenerate() {
 	// 构造椭圆曲线上个各项参数================================================================
 	// r(rRndS256)是随机数，用来构造私钥k,N为G点的阶(这里eth写法len(N)=256),说明，如果选择其他的加密算法，可以改变r的来源
+	logrus.Info("N=", configs.G.N.Text(16))
 	rRndS256 := RandomFromZn(configs.G.N) //阶n=(200-300合适，S256规定是256,再长计算难度大)
 	if rRndS256.Sign() == -1 {
 		rRndS256.Add(rRndS256, configs.G.P) //GF(mod p)中的p,有限域中的质数
 	}
-	logrus.Info("选择随机数r=", rRndS256.Bytes())
+	logrus.Info("选择随机数r=", rRndS256.Text(16))
 	// k是私钥，构造成256位
 	k := make([]byte, BitSizeOfPrivateKeyShard/8)
 
 	math.ReadBits(rRndS256, k)
-	logrus.Info("私钥(片)(32字节)=", k)
+	logrus.Info("私钥(片)(32字节)=", hex.EncodeToString(k))
 	//k*G->(Gx,Gy),kG即公钥
 	Gx, Gy := configs.G.ScalarBaseMult(k)
 	logrus.Info("公钥(片)Gx=", Gx)
@@ -100,7 +113,7 @@ func LockinKeyGenerate() {
 	// 输入参数3：Paillier选的随机数
 	// 输出：加密私钥(片)产生的加密私钥（属于本节点的）encryptK,K是k,即私钥
 	encryptK := encrypt(&PaillierPrivateKey.PublicKey, rRndS256, rRndPaillier)
-	logrus.Info("同态加密结果(加密私钥(片))=", encryptK)
+	logrus.Info("同态加密结果(加密私钥(片))=", encryptK.Text(16))
 
 	//h=hash(M可以广播消息)
 	h := []*big.Int{} //len(h)<=4
@@ -130,8 +143,12 @@ func LockinKeyGenerate() {
 }
 
 var SecureRnd = mathrand.New(mathrand.NewSource(time.Now().UnixNano()))
+
+//这个是否是所有公证人都必须掌握的共同公钥信息?
 var PaillierPrivateKey, _ = GenerateKey(rand.Reader, 1024)
 var zkPublicParams = GenerateParams(configs.G, 256, 512, SecureRnd, &PaillierPrivateKey.PublicKey)
+
+//这个是否是所有公证人都必须掌握的共同公钥信息?
 var masterPK = GenerateMasterPK()
 
 //1
@@ -205,10 +222,29 @@ func ZkProof(peers *list.List) {
 		copy(addrBytes[:32], pky.Bytes())
 		logrus.Info("分布式", configs.ThresholdNum, "个可信的授权节点分配出的地址:=", hex.EncodeToString(tmhash.Sum(addrBytes[:])), ",长度:", len(tmhash.Sum(addrBytes[:])))
 		a4++
-
+		if EncX != nil {
+			if EncX.Cmp(encPrivate) != 0 {
+				logrus.Panic("encPrivate 不相等")
+			}
+		}
 		EncX = encPrivate
+		if PkX != nil {
+			if PkX.Cmp(pkx) != 0 {
+				logrus.Panic("pubkey x 不相同")
+			}
+		}
 		PkX = pkx
+		if PkY != nil {
+			if PkY.Cmp(pky) != 0 {
+				logrus.Panic("pubkey y 不相同")
+			}
+		}
 		PkY = pky
+		privk, _ := crypto.GenerateKey()
+		pub := privk.PublicKey
+		pub.X = PkX
+		pub.Y = PkY
+		logrus.Info("addr=", crypto.PubkeyToAddress(pub).String())
 	}
 	//钱包要比对一下，所有证明人的合成的公私钥要一致
 }

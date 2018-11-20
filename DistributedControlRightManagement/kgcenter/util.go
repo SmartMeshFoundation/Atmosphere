@@ -146,8 +146,8 @@ func RandomFromZn(p *big.Int) *big.Int {
 	for {
 		xRnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 		traget := big.NewInt(1)
-		traget.Lsh(traget, uint(p.BitLen())) //左移n.BitLen位
-		result = new(big.Int).Rand(xRnd, traget)
+		traget.Lsh(traget, uint(p.BitLen()))     //左移n.BitLen位
+		result = new(big.Int).Rand(xRnd, traget) //todo 代码中专门注释了,不要再安全要求高的地方使用这个函数
 		if result.Cmp(p) < 0 {
 			break
 		}
