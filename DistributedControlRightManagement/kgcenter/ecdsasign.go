@@ -1,11 +1,11 @@
 package kgcenter
 
 import (
-	"bytes"
 	"math/big"
 
-	"github.com/SmartMeshFoundation/Photon/utils"
+	"bytes"
 
+	"github.com/SmartMeshFoundation/Atmosphere/utils"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"github.com/sirupsen/logrus"
@@ -31,6 +31,7 @@ func (ecds *ECDSASignature) New3(r *big.Int, s *big.Int, recoveryParam int32) {
 	ecds.s = s
 	ecds.recoveryParam = recoveryParam
 }
+
 func (ecds *ECDSASignature) ToBytes() []byte {
 	buf := new(bytes.Buffer)
 	buf.Write(utils.BigIntTo32Bytes(ecds.r))
@@ -38,6 +39,7 @@ func (ecds *ECDSASignature) ToBytes() []byte {
 	buf.Write([]byte{byte(ecds.recoveryParam)})
 	return buf.Bytes()
 }
+
 func (ecds *ECDSASignature) verify(message string, pkx *big.Int, pky *big.Int) bool {
 
 	z, _ := new(big.Int).SetString(message, 16)

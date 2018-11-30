@@ -146,8 +146,8 @@ func RandomFromZn(p *big.Int) *big.Int {
 	for {
 		xRnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 		traget := big.NewInt(1)
-		traget.Lsh(traget, uint(p.BitLen()))     //左移n.BitLen位
-		result = new(big.Int).Rand(xRnd, traget) //todo 代码中专门注释了,不要再安全要求高的地方使用这个函数
+		traget.Lsh(traget, uint(p.BitLen())) //左移n.BitLen位
+		result = new(big.Int).Rand(xRnd, traget)
 		if result.Cmp(p) < 0 {
 			break
 		}
@@ -167,4 +167,78 @@ func Gcd(x, y *big.Int) *big.Int {
 			return y
 		}
 	}
+}
+
+type Point [2]*big.Int
+
+func PointMul(scalar *big.Int, p *Point) *Point {
+	r := &Point{}
+	for i := 0; i < scalar.BitLen(); i++ {
+		if scalar.Bit(i) == 1 {
+			r = pointAdd(r, p)
+		}
+		p = pointAdd(p, p)
+	}
+	return r
+}
+
+var p = new(big.Int).SetBytes([]byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE, 0xFF, 0xFF, 0xFC, 0x2F})
+
+func pointAdd(p1, p2 *Point) *Point {
+	if Isinfinite(p1) {
+		return p2
+	}
+	if Isinfinite(p2) {
+		return p1
+	}
+	if (p1[0].Cmp(p2[0]) == 0) && (p1[1].Cmp(p2[1]) != 0) {
+		return &Point{}
+	}
+	var lmbda *big.Int
+	if (p1[0].Cmp(p2[0]) == 0) && (p1[1].Cmp(p2[1]) == 0) {
+		// 3 * x1 * x1 * (2 * y1)^(p - 2) mod p
+		lmbda = mod(mul(big.NewInt(3), p1[0], p1[0],
+			exp(mul(big.NewInt(2), p1[1]), sub(p, big.NewInt(2)))),
+			p)
+	} else {
+		// (y2 - y1) * (x2 - x1)^(p - 2) mod p
+		lmbda = mod(mul(sub(p2[1], p1[1]),
+			exp(sub(p2[0], p1[0]), sub(p, big.NewInt(2)))),
+			p)
+	}
+	x3 := mod(sub(sub(mul(lmbda, lmbda), p1[0]), p2[0]), p)
+
+	return &Point{x3,
+		mod(sub(mul(lmbda, sub(p1[0], x3)), p1[1]), p),
+	}
+}
+
+func mod(x, y *big.Int) *big.Int {
+	return new(big.Int).Mod(x, y)
+}
+func add(x, y *big.Int) *big.Int {
+	return new(big.Int).Add(x, y)
+}
+func exp(x, y *big.Int) *big.Int {
+	return new(big.Int).Exp(x, y, p)
+}
+func sub(x, y *big.Int) *big.Int {
+	return new(big.Int).Sub(x, y)
+}
+func mul(x ...*big.Int) *big.Int {
+	m := big.NewInt(1)
+	for _, xi := range x {
+		m = new(big.Int).Mul(m, xi)
+	}
+	return m
+}
+
+//p点是否在无穷远
+func Isinfinite(P *Point) bool {
+	if P[1] == nil || P[1].Cmp(big.NewInt(0)) == 0 {
+		return true
+	}
+	return false
 }

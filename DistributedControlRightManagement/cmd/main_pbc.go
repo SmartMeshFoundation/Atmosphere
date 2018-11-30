@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Nik-U/pbc"
+	"github.com/sirupsen/logrus"
 )
 
 /*
@@ -38,12 +39,13 @@ func main() {
 	//权限生成系统参数
 	//在实际应用中，只需生成一次并发布它
 	params := pbc.GenerateA(160, 512) //
+	//params, _ := pbc.GenerateG(9563, 160, 171, 301)
 	//实例化一个pair(赋随机参数)
 	pairing := params.NewPairing()
 	g := pairing.NewG2().Rand()
 	//权限管理将参数和g分配给alice和bob，先假定此系统的一个共识，都信任
 	sharedParams := params.String()
-
+	fmt.Println("sharedParams:\n", sharedParams)
 	sharedG := g.Bytes()
 	//模拟出消息的通道，即实际中的网络
 	messageChannel := make(chan *messageData)
@@ -106,9 +108,9 @@ func bob(sharedParams string, sharedG []byte, messageChannel chan *messageData, 
 	temp1 := pairing.NewGT().Pair(h, pubKey)
 	temp2 := pairing.NewGT().Pair(signature, g)
 	if !temp1.Equals(temp2) {
-		fmt.Println("*PBC* Signature check failed(bob verity alice)")
+		logrus.Error("*PBC* Signature check failed(bob verify alice's signature)")
 	} else {
-		fmt.Println("Signature verified correctly(bob verity alice)")
+		logrus.Info("Signature verified correctly(bob verify alice's signature)")
 	}
 	finished <- true
 }

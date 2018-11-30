@@ -4,13 +4,12 @@ import (
 	"math/big"
 	"math/rand"
 
-	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"github.com/sirupsen/logrus"
 )
 
 type Zkpi2 struct {
-	u1 *big.Int
+	u1 *Point
 	u2 *big.Int
 	u3 *big.Int
 	z1 *big.Int
@@ -72,35 +71,36 @@ func (zkp *Zkpi2) Initialization(params *PublicParameters,
 	var tau = RandomFromZn(new(big.Int).Mul(q8, nTilde))
 	//ρ1 ∈ (Z)qÑ
 	var rho1 = RandomFromZn(new(big.Int).Mul(q, nTilde))
-	//ρ 2 ∈ (Z)q6 * Ñ
+	//ρ2 ∈ (Z)q6 * Ñ
 	var rho2 = RandomFromZn(new(big.Int).Mul(q6, nTilde))
-	//z1
+
+	//z1=(h1)eta1 * (h2)ρ1 mod Ñ
 	hen := ModPowInsecure(h1, eta1, nTilde)
 	hrn := ModPowInsecure(h2, rho1, nTilde)
 	hh := new(big.Int).Mul(hen, hrn)
 	zkp.z1 = new(big.Int).Mod(hh, nTilde)
-	//z2
+
+	//z2=(h1)eta2 * (h2)ρ2 mod Ñ
 	hhen := ModPowInsecure(h1, eta2, nTilde)
 	hhrn := ModPowInsecure(h2, rho2, nTilde)
 	hhhh := new(big.Int).Mul(hhen, hhrn)
 	zkp.z2 = new(big.Int).Mod(hhhh, nTilde)
-	//证明人计算:
-	alpha256 := make([]byte, 32)
-	math.ReadBits(alpha, alpha256[:])
-	zkp.u1 = new(big.Int).Mul(new(big.Int).SetBytes(Get2Bytes(cx, cy)), alpha)
-	var u1256 = make([]byte, 256/8)
-	math.ReadBits(zkp.u1, u1256)
-	zkp.u1 = new(big.Int).Rsh(zkp.u1, 1024)
+
+	//u1 = (g)α in G
+	zkp.u1 = PointMul(alpha, &Point{cx, cy})
+
 	//u2 = (Γ)α * (β)N mod N 2
 	var gan = ModPowInsecure(g, alpha, nSquared)
 	var bnn = ModPowInsecure(beta, N, nSquared)
 	var gb = new(big.Int).Mul(gan, bnn)
 	zkp.u2 = new(big.Int).Mod(gb, nSquared)
+
 	//u3 = (h1)α * (h2)γ mod Ñ
 	var han = ModPowInsecure(h1, alpha, nTilde)
 	var hgn = ModPowInsecure(h2, gamma, nTilde)
 	var hhag = new(big.Int).Mul(han, hgn)
 	zkp.u3 = new(big.Int).Mod(hhag, nTilde)
+
 	//v1 = (u)α (Γ)qθ * (μ)N mod N2
 	var uan = ModPowInsecure(u, alpha, nSquared)
 	var qtta = new(big.Int).Mul(q, theta)
@@ -109,38 +109,45 @@ func (zkp *Zkpi2) Initialization(params *PublicParameters,
 	var ug = new(big.Int).Mul(uan, gqn)
 	var um = new(big.Int).Mul(ug, mnn)
 	zkp.v1 = new(big.Int).Mod(um, nSquared)
+
 	//v3 = (h1)θ * (h2)τ mod Ñ
 	var hthn = ModPowInsecure(h1, theta, nTilde)
 	var htnt = ModPowInsecure(h2, tau, nTilde)
 	var aaa = new(big.Int).Mul(hthn, htnt)
 	zkp.v3 = new(big.Int).Mod(aaa, nTilde)
-	//e = hash(g, w, u, z1 , z2 , u1 , u2 , u3 , v1 , v2 , v3)
+
+	//e = hash(g, w, u, z1 , z2 , u1 , u2 , u3 , v1 , v3)
 	digest := Sha256Hash(GetBytes(g), GetBytes(w), GetBytes(u), GetBytes(zkp.z1),
-		GetBytes(zkp.z2), GetBytes(zkp.u1), GetBytes(zkp.u2), GetBytes(zkp.u3),
-		GetBytes(zkp.v1), GetBytes(zkp.v3)) //Get2Bytes(cx,cy),
+		GetBytes(zkp.z2), Get2Bytes(zkp.u1[0], zkp.u1[1]), GetBytes(zkp.u2), GetBytes(zkp.u3),
+		GetBytes(zkp.v1), GetBytes(zkp.v3))
 	if len(digest) == 0 {
 		logrus.Panic("Assertion Error in zero knowledge proof i2")
 	}
 	zkp.e = new(big.Int).SetBytes(digest)
-	eeta := new(big.Int).Mul(zkp.e, eta1) //e.multiply(eta1)
+
+	//s1=e*eta1 + α
+	eeta := new(big.Int).Mul(zkp.e, eta1)
 	zkp.s1 = new(big.Int).Add(eeta, alpha)
 
+	//s2=e*eta1 + γ
 	erho := new(big.Int).Mul(zkp.e, rho1)
 	zkp.s2 = new(big.Int).Add(erho, gamma)
 
+	//t1=(rnd)e * μ mod N
 	rande := ModPowInsecure(randomness, zkp.e, N)
 	rmn := new(big.Int).Mul(rande, mu)
 	zkp.t1 = new(big.Int).Mod(rmn, N)
 
+	//t2=e*eta2 + θ
 	eeta2 := new(big.Int).Mul(zkp.e, eta2)
 	zkp.t2 = new(big.Int).Add(eeta2, theta)
 
+	//t3=e*ρ2 + τ
 	erho2 := new(big.Int).Mul(zkp.e, rho2)
 	zkp.t3 = new(big.Int).Add(erho2, tau)
 }
 
 func (zkp *Zkpi2) verify(params *PublicParameters, BitCurve *secp256k1.BitCurve,
-	//r *ECPoint,
 	rx, ry,
 	u *big.Int, w *big.Int) bool {
 
@@ -155,7 +162,6 @@ func (zkp *Zkpi2) verify(params *PublicParameters, BitCurve *secp256k1.BitCurve,
 		X: secp256k1.S256().Gx,
 		Y: secp256k1.S256().Gy,
 	}
-	//r:=&ECPoint{rx,ry}
 	go zkp.checkU1(bitC.X, bitC.Y, rx, ry)
 	go zkp.checkU3(h1, nTilde, h2)
 	go zkp.checkV1(u, nSquared, q, g, N, w)
@@ -209,18 +215,15 @@ func (zkp *Zkpi2) verify(params *PublicParameters, BitCurve *secp256k1.BitCurve,
 	return true
 }
 
+//checkU1 check:u1=(c)s1 * (r)-e ing G
 func (zkp *Zkpi2) checkU1(cx, cy *big.Int, rx, ry *big.Int) {
+	c := &Point{cx, cy}
+	r := &Point{rx, ry}
+	minuse := new(big.Int).Mul(zkp.e, big.NewInt(-1))
+	minuse = new(big.Int).Mod(minuse, secp256k1.S256().N)
+	u1 := pointAdd(PointMul(zkp.s1, c), PointMul(minuse, r))
 
-	x1 := new(big.Int).Mul(new(big.Int).SetBytes(Get2Bytes(cx, cx)), zkp.s1)
-	var nege = new(big.Int).Neg(zkp.e)
-	x2 := new(big.Int).Mul(new(big.Int).SetBytes(Get2Bytes(rx, rx)), nege)
-	result := new(big.Int).Add(x1, x2)
-	var result256 = make([]byte, 256/8)
-	math.ReadBits(result, result256)
-	result = new(big.Int).Rsh(result, 1024)
-	subReuslt := new(big.Int).Sub(result, zkp.u1)
-	subReuslt = new(big.Int).Abs(subReuslt)
-	if subReuslt.Cmp(big.NewInt(0)) == 0 || subReuslt.Cmp(big.NewInt(1)) == 0 {
+	if u1[0].Cmp(zkp.u1[0]) == 0 && u1[1].Cmp(zkp.u1[1]) == 0 {
 		finishedi2U1 <- true
 		return
 	} else {
@@ -229,16 +232,17 @@ func (zkp *Zkpi2) checkU1(cx, cy *big.Int, rx, ry *big.Int) {
 	}
 }
 
+//checkU3 check: u3=(h1)s1 * (h2)s2 * (z1)-e mod Ñ
 func (zkp *Zkpi2) checkU3(h1, nTilde, h2 *big.Int) {
 	hsn := ModPowInsecure(h1, zkp.s1, nTilde)
 	hsnt := ModPowInsecure(h2, zkp.s2, nTilde)
 	en := new(big.Int).Neg(zkp.e)
 	hhss := new(big.Int).Mul(hsn, hsnt)
 	zenn := ModPowInsecure(zkp.z1, en, nTilde)
-
 	hz := new(big.Int).Mul(hhss, zenn)
 	hn := new(big.Int).Mod(hz, nTilde)
 	cm := zkp.u3.Cmp(hn)
+
 	if cm == 0 {
 		finishedi2U3 <- true
 	} else {
@@ -246,6 +250,7 @@ func (zkp *Zkpi2) checkU3(h1, nTilde, h2 *big.Int) {
 	}
 }
 
+//checkV1 check:v1=(u)s1 * (τ)qt2 *(t1)N *(w)-e mod N2
 func (zkp *Zkpi2) checkV1(u *big.Int, nSquared *big.Int, q *big.Int, g *big.Int, N *big.Int, w *big.Int) {
 	usn := ModPowInsecure(u, zkp.s1, nSquared)
 	qt := new(big.Int).Mul(q, zkp.t2)
@@ -258,13 +263,17 @@ func (zkp *Zkpi2) checkV1(u *big.Int, nSquared *big.Int, q *big.Int, g *big.Int,
 	uw := new(big.Int).Mul(ugtnn, wen)
 	uwn := new(big.Int).Mod(uw, nSquared)
 	cm := zkp.v1.Cmp(uwn)
+
 	if cm == 0 {
 		finishedi2V1 <- true
+		return
 	} else {
 		finishedi2V1 <- false
+		return
 	}
 }
 
+//checkV3 check:v3=(h1)t2 * (h2)t3 * (z2)-e mod Ñ
 func (zkp *Zkpi2) checkV3(h1 *big.Int, nTilde *big.Int, h2 *big.Int) {
 	h1tn := ModPowInsecure(h1, zkp.t2, nTilde)
 	htn := ModPowInsecure(h2, zkp.t3, nTilde)
@@ -277,17 +286,20 @@ func (zkp *Zkpi2) checkV3(h1 *big.Int, nTilde *big.Int, h2 *big.Int) {
 
 	if cm == 0 {
 		finishedi2V3 <- true
+		return
 	} else {
 		finishedi2V3 <- false
+		return
 	}
 }
 
-//e = hash(g, w, u, z1 , z2 , u1 , u2 , u3 , v1 , v2 , v3 )  无v2
+//checkE check:e = hash(g, w, u, z1 , z2 , u1 , u2 , u3 , v1 , v3 )  no v2
 func (zkp *Zkpi2) checkE(bitC *ECPoint, w, u, g *big.Int) { //Get2Bytes(bitC.X,bitC.Y)
 	var result = Sha256Hash(GetBytes(g), GetBytes(w), GetBytes(u),
-		GetBytes(zkp.z1), GetBytes(zkp.z2),
-		GetBytes(zkp.u1), GetBytes(zkp.u2), GetBytes(zkp.u3),
+		GetBytes(zkp.z1), GetBytes(zkp.z2), Get2Bytes(zkp.u1[0], zkp.u1[1]),
+		GetBytes(zkp.u2), GetBytes(zkp.u3),
 		GetBytes(zkp.v1), GetBytes(zkp.v3))
+
 	if zkp.e.Cmp(new(big.Int).SetBytes(result)) == 0 {
 		finishedi2E <- true
 		return

@@ -2,7 +2,7 @@ package kgcenter
 
 import (
 	"math/big"
-	//"github.com/Roasbeef/go-go-gadget-paillier"
+
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 )
 

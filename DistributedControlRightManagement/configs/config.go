@@ -23,8 +23,10 @@ var (
 	Ip4 = "192.168.124.10"
 )
 
-var ThresholdNum = 10
+var ThresholdNum = 5
 
 var G = secp256k1.S256()
 
-var httpBindAddr = flag.String("http-bind-address", ":10000", "The HTTP listening port for the server")
+var httpBindAddr = flag.String("http-bind-address", ":10000", "The HTTP listening port for the user's request of dcrm")
+
+var IsProverBoss = true

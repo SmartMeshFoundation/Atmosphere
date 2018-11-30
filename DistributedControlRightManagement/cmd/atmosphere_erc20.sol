@@ -151,7 +151,7 @@ contract EthereumToken is StandardToken {
         require(balances[msg.sender]>=value);
         locked[msg.sender]=value;
         balances[msg.sender]-=value;
-    main_chain_data[msg.sender]=data;
+        main_chain_data[msg.sender]=data;
         emit PrePareLockedOut(msg.sender,value);
     }
     //公证人在主链上转账到具体地址后,销毁相应记录

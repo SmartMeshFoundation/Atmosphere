@@ -5,7 +5,7 @@ import (
 )
 
 func main() {
-	/*x:=new(big.Int).Mod(big.NewInt(29),big.NewInt(23))
+	/*x := new(big.Int).Mod(big.NewInt(29), big.NewInt(23))
 	fmt.Println(x)*/
 	StartMain()
 }
@@ -13,4 +13,6 @@ func main() {
 func StartMain() {
 	kgcenter.LockIn()
 	kgcenter.LockOut()
+	//初始化一个list
+
 }

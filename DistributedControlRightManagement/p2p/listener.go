@@ -77,7 +77,6 @@ func (sls *SvrListenSocket) SendMessage() {
 
 }
 
-//心跳
 func (sls *SvrListenSocket) SendNetLinkMsg() {
 
 }
