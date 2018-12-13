@@ -1,4 +1,4 @@
-package paillier
+package proofs
 
 import (
 	"crypto/rand"
