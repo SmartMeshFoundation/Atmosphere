@@ -12,9 +12,9 @@ import (
 	"os"
 
 	"github.com/SmartMeshFoundation/Atmosphere/DistributedControlRightManagement/configs"
-	"github.com/SmartMeshFoundation/Atmosphere/dcrm"
 	"github.com/SmartMeshFoundation/Atmosphere/dcrm/commitments"
 	"github.com/SmartMeshFoundation/Atmosphere/dcrm/zkp"
+	"github.com/SmartMeshFoundation/Atmosphere/dcrm2"
 )
 
 func main() {
@@ -24,7 +24,7 @@ func main() {
 	var PaillierPrivateKey, _ = zkp.GenerateKey(rand.Reader, 1023)
 	var zkPublicParams = zkp.GenerateParams(configs.G, 256, 512, &PaillierPrivateKey.PublicKey)
 	var masterPK = commitments.GenerateNMMasterPublicKey()
-	arg := &dcrm.NotaryShareArg{
+	arg := &dcrm2.NotaryShareArg{
 		PaillierPrivateKey: PaillierPrivateKey,
 		ZkPublicParams:     zkPublicParams,
 		MasterPK:           masterPK,

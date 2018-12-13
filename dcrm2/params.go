@@ -1,4 +1,4 @@
-package dcrm
+package dcrm2
 
 import (
 	"crypto/ecdsa"
