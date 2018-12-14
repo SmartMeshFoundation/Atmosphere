@@ -11,7 +11,6 @@ import (
 
 	"errors"
 
-	"github.com/SmartMeshFoundation/Atmosphere/DistributedControlRightManagement/kgcenter"
 	"github.com/SmartMeshFoundation/Atmosphere/DistributedControlRightManagement/kgcenter/commitments"
 	"github.com/SmartMeshFoundation/Atmosphere/dcrm/curv/proofs"
 	"github.com/SmartMeshFoundation/Atmosphere/dcrm/curv/secret_sharing"
@@ -82,7 +81,7 @@ type Phase5DDecom2 struct {
 }
 
 func createKeys(index int) *Keys {
-	ui := kgcenter.RandomFromZn(secp256k1.S256().N)
+	ui := secret_sharing.RandomPrivateKey()
 	yi_x, yi_y := secp256k1.S256().ScalarBaseMult(ui.Bytes())
 	yi := &secret_sharing.GE{yi_x, yi_y}
 	partyPaillierPrivateKey, err := proofs.GenerateKey(rand.Reader, 2048)
@@ -108,7 +107,7 @@ func (k *Keys) phase1BroadcastPhase3ProofOfCorrectKey() (*KeyGenBroadcastMessage
 	correctKeyProof := proofs.CreateNICorrectKeyProof(k.dk)
 	com := CreateCommitmentWithUserDefinedRandomNess(k.yi.X, blind_factor)
 	bcm1 := &KeyGenBroadcastMessage1{
-		e:               &k.dk.PublicKey,
+		e:               k.dk.PublicKey.Clone(),
 		com:             com,
 		correctKeyProof: correctKeyProof,
 	}
@@ -218,13 +217,25 @@ func (k *SignKeys) phase2DeltaI(alpha_vec []*big.Int, beta_vec []*big.Int) *big.
 	}
 	return kiGammaI
 }
-
+func (k *SignKeys) phase2SigmaI(miu_vec []*big.Int, ni_vec []*big.Int) *big.Int {
+	if len(miu_vec) != len(ni_vec) ||
+		len(miu_vec) != len(k.s)-1 {
+		panic("length error")
+	}
+	kiwi := new(big.Int).Set(k.ki)
+	secret_sharing.ModMul(kiwi, k.wi)
+	for i := 0; i < len(miu_vec); i++ {
+		secret_sharing.ModAdd(kiwi, miu_vec[i])
+		secret_sharing.ModAdd(kiwi, ni_vec[i])
+	}
+	return kiwi
+}
 func phase3ReconstructDelta(delta_vec []*big.Int) *big.Int {
 	sum := big.NewInt(0)
 	for i := 0; i < len(delta_vec); i++ {
 		secret_sharing.ModAdd(sum, delta_vec[i])
 	}
-	return sum
+	return secret_sharing.Invert(sum, secret_sharing.S.N)
 }
 
 func phase4(delta_inv *big.Int,
@@ -239,7 +250,8 @@ func phase4(delta_inv *big.Int,
 		}
 		return nil, errors.New("invliad key")
 	}
-	sumx, sumy := g_gamma_i_vec[0].X, g_gamma_i_vec[0].Y
+	gc := g_gamma_i_vec[0].Clone()
+	sumx, sumy := gc.X, gc.Y
 	for i := 1; i < len(g_gamma_i_vec); i++ {
 		secret_sharing.PointAdd(sumx, sumy, g_gamma_i_vec[i].X, g_gamma_i_vec[i].Y)
 	}

@@ -108,6 +108,13 @@ type PublicKey struct {
 	NSquared *big.Int
 }
 
+func (p *PublicKey) Clone() *PublicKey {
+	return &PublicKey{
+		N:        new(big.Int).Set(p.N),
+		G:        new(big.Int).Set(p.G),
+		NSquared: new(big.Int).Set(p.NSquared),
+	}
+}
 func h(p *big.Int, pp *big.Int, n *big.Int) *big.Int {
 	gp := new(big.Int).Mod(new(big.Int).Sub(one, n), pp)
 	lp := l(gp, p)

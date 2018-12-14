@@ -48,6 +48,7 @@ func Prove(sk *big.Int) *DLogProof {
 	}
 }
 
+//不会修改任何proof的内容
 func Verify(proof *DLogProof) bool {
 	challenge := utils.Sha3(
 		proof.pkTRandCommitment.X.Bytes(),

@@ -76,12 +76,12 @@ func SamplePolynomial(t int, coef0 *big.Int) []*big.Int {
 		k, _ := crypto.GenerateKey()
 		bs = append(bs, k.D)
 	}
-	bs = []*big.Int{
-		coef0,
-		big.NewInt(1),
-		big.NewInt(2),
-		big.NewInt(3),
-	}
+	//bs = []*big.Int{
+	//	coef0,
+	//	big.NewInt(1),
+	//	big.NewInt(2),
+	//	big.NewInt(3),
+	//}
 	return bs
 }
 
@@ -312,7 +312,7 @@ func (v *VerifiableSS) Reconstruct(indices []int, shares []*big.Int) *big.Int {
 	if len(shares) != len(indices) {
 		panic("arg error")
 	}
-	if len(shares) != v.reconstructLimit() {
+	if len(shares) < v.reconstructLimit() {
 		panic("arg error")
 	}
 	var points []*big.Int

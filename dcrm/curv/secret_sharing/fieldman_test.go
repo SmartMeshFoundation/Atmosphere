@@ -35,6 +35,12 @@ func TestEvaluatePolynomial(t *testing.T) {
 		86467af4f1d4a55d512be123b1ec63d5a43b0a27466dd3039816c3b2075ef8ef
 	*/
 }
+func TestScalarMult(t *testing.T) {
+	a := str2bigint("47626cae7657d2825645e60cf2d765f7470dfb55a6e2b65db1937fe6ad975d78")
+	x, y := S.ScalarBaseMult(a.Bytes())
+	s := Xytostr(x, y)
+	t.Logf(s)
+}
 func TestShare(t *testing.T) {
 	v, _ := Share(3, 5, big.NewInt(30))
 	t.Logf("v=%s", utils.StringInterface(v, 7))
@@ -66,6 +72,36 @@ func TestInvert(t *testing.T) {
 	}
 }
 
+func TestVerifiableSS_ValidateShare37(t *testing.T) {
+	v, secretShares := Share(2, 7, big.NewInt(70))
+	log.Trace(fmt.Sprintf("v=%s", utils.StringInterface(v, 7)))
+	s2 := secretShares[0:1]
+	s2 = append(s2, secretShares[6])
+	s2 = append(s2, secretShares[2])
+	s2 = append(s2, secretShares[4])
+
+	secretRescontructed := v.Reconstruct([]int{0, 6, 2, 4}, s2)
+	if secretRescontructed.Cmp(big.NewInt(70)) != 0 {
+		t.Error("reconstructed error")
+		return
+	}
+
+	b := v.ValidateShare(secretShares[2], 3)
+	assert.EqualValues(t, b, true)
+	b = v.ValidateShare(secretShares[0], 1)
+	assert.EqualValues(t, b, true)
+	s := []int{0, 1, 3, 4, 6}
+	l0 := v.MapShareToNewParams(0, s)
+	l1 := v.MapShareToNewParams(1, s)
+	l2 := v.MapShareToNewParams(3, s)
+	l3 := v.MapShareToNewParams(4, s)
+	l4 := v.MapShareToNewParams(6, s)
+	log.Trace(fmt.Sprintf("l0=%s\n,l1=%s\n,l2=%s\n,l3=%s\n,l4=%s\n",
+		l0.Text(16), l1.Text(16), l2.Text(16),
+		l3.Text(16), l4.Text(16),
+	))
+}
+
 func TestVerifiableSS_ValidateShare(t *testing.T) {
 	v, secretShares := Share(3, 5, big.NewInt(70))
 	log.Trace(fmt.Sprintf("v=%s", utils.StringInterface(v, 7)))
@@ -77,6 +113,7 @@ func TestVerifiableSS_ValidateShare(t *testing.T) {
 		t.Error("reconstructed error")
 		return
 	}
+
 	b := v.ValidateShare(secretShares[2], 3)
 	assert.EqualValues(t, b, true)
 	b = v.ValidateShare(secretShares[0], 1)
@@ -91,6 +128,41 @@ func TestVerifiableSS_ValidateShare(t *testing.T) {
 		l0.Text(16), l1.Text(16), l2.Text(16),
 		l3.Text(16), l4.Text(16),
 	))
+}
+
+func TestVerifiableSS_ValidateShare2(t *testing.T) {
+	v, secretShares := Share(2, 4, big.NewInt(70))
+	log.Trace(fmt.Sprintf("v=%s", utils.StringInterface(v, 7)))
+	s2 := secretShares[0:3]
+	//s2 = append(s2, secretShares[3])
+
+	secretRescontructed := v.Reconstruct([]int{0, 1, 2}, s2)
+	if secretRescontructed.Cmp(big.NewInt(70)) != 0 {
+		t.Logf("secretRescontructed=%s", secretRescontructed)
+		t.Error("reconstructed error")
+		return
+	}
+
+	//secretRescontructed = v.Reconstruct([]int{0, 1, 2, 3, 4}, secretShares)
+	//if secretRescontructed.Cmp(big.NewInt(70)) != 0 {
+	//	t.Error("reconstructed error")
+	//	return
+	//}
+
+	//b := v.ValidateShare(secretShares[2], 3)
+	//assert.EqualValues(t, b, true)
+	//b = v.ValidateShare(secretShares[0], 1)
+	//assert.EqualValues(t, b, true)
+	//s := []int{0, 1, 2, 3, 4}
+	//l0 := v.MapShareToNewParams(0, s)
+	//l1 := v.MapShareToNewParams(1, s)
+	//l2 := v.MapShareToNewParams(2, s)
+	//l3 := v.MapShareToNewParams(3, s)
+	//l4 := v.MapShareToNewParams(4, s)
+	//log.Trace(fmt.Sprintf("l0=%s\n,l1=%s\n,l2=%s\n,l3=%s\n,l4=%s\n",
+	//	l0.Text(16), l1.Text(16), l2.Text(16),
+	//	l3.Text(16), l4.Text(16),
+	//))
 }
 
 func TestPointSub(t *testing.T) {
@@ -141,4 +213,25 @@ func TestPointSub(t *testing.T) {
 		}
 	}
 
+}
+
+func TestLsh(t *testing.T) {
+	a := str2bigint("28064132643846632695607237370921442439956604667885930229835793462081545041461")
+	x := str2bigint("72030963781072581219587713863143054310990281998109173424654097085162671284585")
+	y := x.Lsh(x, 256)
+	s := a.Add(a, y)
+	t.Logf(s.Text(16))
+	a = str2bigint("64707283623258898139504461127142352865415264410956389544247533112393852326510")
+	a.Lsh(a, 256)
+	t.Logf("shl=%s", a.Text(10))
+
+}
+
+func TestPointAdd(t *testing.T) {
+	x1, y1 := Strtoxy("4a74630709c49150d10f0e607670f2c73dc2865c8850c5d7514e386eed5cb299b34852ce4e6f4b192e8ffca93f502fe4e877d52065805e11c0899fefbf447a07")
+	x2, y2 := Strtoxy("b2cdbce035a29196c7dc1c79de6da01555645ada71174e7686111d00a55b8fa879ffb8a40c7bef590a944dd6a2d63d4472b30ac40b0f99d373350d0c8246d42d")
+	x, y := PointAdd(x1, y1, x2, y2)
+	t.Logf("x=%s,y=%s", x.Text(16), y.Text(16))
+	x, y = PointAdd(x2, y2, x1, y1)
+	t.Logf("x=%s,y=%s", x.Text(16), y.Text(16))
 }
