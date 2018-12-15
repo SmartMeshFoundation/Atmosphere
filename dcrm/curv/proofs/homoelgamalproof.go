@@ -3,10 +3,13 @@ package proofs
 import (
 	"math/big"
 
+	"fmt"
+
+	"encoding/hex"
+
 	"github.com/SmartMeshFoundation/Atmosphere/dcrm/curv/secret_sharing"
-	"github.com/SmartMeshFoundation/Atmosphere/dcrm2/zkp"
+	"github.com/SmartMeshFoundation/Atmosphere/log"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
-	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 )
 
 /// This is a proof of knowledge that a pair of group elements {D, E}
@@ -38,10 +41,12 @@ type HomoElGamalStatement struct {
 	E *secret_sharing.GE
 }
 
+//const
 func CreateHomoELGamalProof(w *HomoElGamalWitness, delta *HomoElGamalStatement) *HomoELGamalProof {
-	s1 := zkp.RandomFromZn(secp256k1.S256().N)
-	s2 := zkp.RandomFromZn(secp256k1.S256().N)
-
+	s1 := secret_sharing.RandomPrivateKey()
+	s2 := secret_sharing.RandomPrivateKey()
+	//s1 := big.NewInt(23)
+	//s2 := big.NewInt(29)
 	A1x, A1y := S.ScalarMult(delta.H.X, delta.H.Y, s1.Bytes())
 	A2x, A2y := S.ScalarMult(delta.Y.X, delta.Y.Y, s2.Bytes())
 	A3x, A3y := S.ScalarMult(delta.G.X, delta.G.Y, s2.Bytes())
@@ -66,6 +71,7 @@ func CreateHomoELGamalProof(w *HomoElGamalWitness, delta *HomoElGamalStatement) 
 
 }
 
+//const 不会修改proof
 func (proof *HomoELGamalProof) Verify(delta *HomoElGamalStatement) bool {
 	e := CreateHashFromGE([]*secret_sharing.GE{proof.T, proof.A3, delta.G, delta.H, delta.Y, delta.D, delta.E})
 	//z12=z1*H+z2*Y
@@ -92,10 +98,18 @@ func (proof *HomoELGamalProof) Verify(delta *HomoElGamalStatement) bool {
 func CreateHashFromGE(ge []*secret_sharing.GE) *big.Int {
 	var bs [][]byte
 	for _, g := range ge {
+		bs = append(bs, []byte{4})
+		s := secret_sharing.Xytostr(g.X, g.Y)
+		log.Trace(fmt.Sprintf("s=%s", s))
+		log.Trace(fmt.Sprintf("x=%s,y=%s", g.X.Text(16), g.Y.Text(16)))
+		log.Trace(fmt.Sprintf("x=%s", hex.EncodeToString(g.X.Bytes())))
+		log.Trace(fmt.Sprintf("write=%s", hex.EncodeToString(g.X.Bytes())))
+		log.Trace(fmt.Sprintf("writey=%s", hex.EncodeToString(g.Y.Bytes())))
 		bs = append(bs, g.X.Bytes())
 		bs = append(bs, g.Y.Bytes())
+		//bs = append(bs, b)
 	}
-	hash := utils.Sha3(bs...)
+	hash := utils.ShaSecret(bs...)
 	result := new(big.Int).SetBytes(hash[:])
 	return secret_sharing.BigInt2PrivateKey(result)
 }

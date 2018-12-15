@@ -19,6 +19,7 @@ type MessageB struct {
 	BetaTagProof *proofs.DLogProof
 }
 
+//const
 func NewMessageA(ecdsaPrivateKey *big.Int, paillierPubKey *proofs.PublicKey) (*MessageA, error) {
 	ca, err := proofs.Encrypt(paillierPubKey, ecdsaPrivateKey.Bytes())
 	if err != nil {
@@ -26,9 +27,15 @@ func NewMessageA(ecdsaPrivateKey *big.Int, paillierPubKey *proofs.PublicKey) (*M
 	}
 	return &MessageA{ca}, nil
 }
+func (m *MessageA) String() string {
+	return new(big.Int).SetBytes(m.C).Text(10)
+}
 
+//const
 func NewMessageB(ecdsaPrivateKey *big.Int, paillierPubKey *proofs.PublicKey, ca *MessageA) (*MessageB, *big.Int, error) {
 	betaTag := zkp.RandomFromZn(paillierPubKey.N)
+	//todo fixme bai
+	//betaTag = big.NewInt(39)
 	betaTagPrivateKey := betaTag.Mod(betaTag, secret_sharing.S.N)
 	cBetaTag, err := proofs.Encrypt(paillierPubKey, betaTagPrivateKey.Bytes())
 	if err != nil {
@@ -46,6 +53,7 @@ func NewMessageB(ecdsaPrivateKey *big.Int, paillierPubKey *proofs.PublicKey, ca 
 	}, beta, nil
 }
 
+//const
 func (m *MessageB) VerifyProofsGetAlpha(dk *proofs.PrivateKey, a *big.Int) (*big.Int, error) {
 	ashare, err := proofs.Decrypt(dk, m.C)
 	if err != nil {

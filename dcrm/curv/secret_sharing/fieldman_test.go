@@ -18,12 +18,12 @@ func init() {
 
 func TestEvaluatePolynomial(t *testing.T) {
 	cf := []*big.Int{
-		str2bigint("34930839620e77f1a7560698d20469b9e5f102f20980d204f73e6d37bb91f18c"),
-		str2bigint("c5a8645d5d9c9f7362ccc677491a309c6e232573c7ed7a0bf1de65e25ac80772"),
-		str2bigint("723981eb59fe890d67e536a2efc91f53d56a2bd37db7a0694bc46fbeb77b059c"),
+		Str2bigint("34930839620e77f1a7560698d20469b9e5f102f20980d204f73e6d37bb91f18c"),
+		Str2bigint("c5a8645d5d9c9f7362ccc677491a309c6e232573c7ed7a0bf1de65e25ac80772"),
+		Str2bigint("723981eb59fe890d67e536a2efc91f53d56a2bd37db7a0694bc46fbeb77b059c"),
 	}
-	//point := str2bigint("0x0000000000000000000000000000000000000000000000000000000000000001")
-	//res := str2bigint("0x0bf422f5b4f7012edc2057ba2fca02eb89c6519a955ee611efc0afdf3825620a")
+	//point := Str2bigint("0x0000000000000000000000000000000000000000000000000000000000000001")
+	//res := Str2bigint("0x0bf422f5b4f7012edc2057ba2fca02eb89c6519a955ee611efc0afdf3825620a")
 	secret_shares := EvaluatePolynomial(cf, []int{1, 2, 3, 4, 5})
 	t.Logf("secret_shares=%s", utils.StringInterface(secret_shares, 5))
 	//assert.EqualValues(t, res, secret_shares[0])
@@ -36,7 +36,7 @@ func TestEvaluatePolynomial(t *testing.T) {
 	*/
 }
 func TestScalarMult(t *testing.T) {
-	a := str2bigint("47626cae7657d2825645e60cf2d765f7470dfb55a6e2b65db1937fe6ad975d78")
+	a := Str2bigint("47626cae7657d2825645e60cf2d765f7470dfb55a6e2b65db1937fe6ad975d78")
 	x, y := S.ScalarBaseMult(a.Bytes())
 	s := Xytostr(x, y)
 	t.Logf(s)
@@ -64,16 +64,17 @@ func TestInvert(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		a := str2bigint(tt.a)
+		a := Str2bigint(tt.a)
 		ainv := Invert(a, S.N)
-		if ainv.Cmp(str2bigint(tt.r)) != 0 {
+		if ainv.Cmp(Str2bigint(tt.r)) != 0 {
 			t.Error("notequal")
 		}
 	}
 }
 
 func TestVerifiableSS_ValidateShare37(t *testing.T) {
-	v, secretShares := Share(2, 7, big.NewInt(70))
+	var seckey int64 = 99993993
+	v, secretShares := Share(2, 7, big.NewInt(seckey))
 	log.Trace(fmt.Sprintf("v=%s", utils.StringInterface(v, 7)))
 	s2 := secretShares[0:1]
 	s2 = append(s2, secretShares[6])
@@ -81,7 +82,7 @@ func TestVerifiableSS_ValidateShare37(t *testing.T) {
 	s2 = append(s2, secretShares[4])
 
 	secretRescontructed := v.Reconstruct([]int{0, 6, 2, 4}, s2)
-	if secretRescontructed.Cmp(big.NewInt(70)) != 0 {
+	if secretRescontructed.Cmp(big.NewInt(seckey)) != 0 {
 		t.Error("reconstructed error")
 		return
 	}
@@ -216,12 +217,12 @@ func TestPointSub(t *testing.T) {
 }
 
 func TestLsh(t *testing.T) {
-	a := str2bigint("28064132643846632695607237370921442439956604667885930229835793462081545041461")
-	x := str2bigint("72030963781072581219587713863143054310990281998109173424654097085162671284585")
+	a := Str2bigint("28064132643846632695607237370921442439956604667885930229835793462081545041461")
+	x := Str2bigint("72030963781072581219587713863143054310990281998109173424654097085162671284585")
 	y := x.Lsh(x, 256)
 	s := a.Add(a, y)
 	t.Logf(s.Text(16))
-	a = str2bigint("64707283623258898139504461127142352865415264410956389544247533112393852326510")
+	a = Str2bigint("64707283623258898139504461127142352865415264410956389544247533112393852326510")
 	a.Lsh(a, 256)
 	t.Logf("shl=%s", a.Text(10))
 

@@ -66,12 +66,14 @@ func GenerateKey(random io.Reader, bits int) (*PrivateKey, error) {
 
 }
 
+//const
 func crtDecompose(D, p, q *big.Int) (dp, dq *big.Int) {
 	dp = new(big.Int).Mod(D, p)
 	dq = new(big.Int).Mod(D, q)
 	return
 }
 
+//const
 func crtRecombine(x1, x2, m1, m2, m1inv *big.Int) *big.Int {
 	diff := new(big.Int).Sub(x2, x1)
 	diff.Mod(diff, m2)
@@ -99,6 +101,36 @@ type PrivateKey struct {
 	hp        *big.Int
 	hq        *big.Int
 	n         *big.Int
+}
+
+func NewPrivateKey(p, q *big.Int) *PrivateKey {
+	n := new(big.Int).Mul(p, q)
+	pp := new(big.Int).Mul(p, p)
+	qq := new(big.Int).Mul(q, q)
+	pminusone := new(big.Int).Sub(p, one)
+	qminusone := new(big.Int).Sub(q, one)
+	phi := new(big.Int).Mul(pminusone, qminusone)
+	dn := new(big.Int).ModInverse(n, phi)
+	dp, dq := crtDecompose(dn, pminusone, qminusone) //D mod (P-1) (or mod Q-1)
+	return &PrivateKey{
+		PublicKey: PublicKey{
+			N:        n,
+			NSquared: new(big.Int).Mul(n, n),
+			G:        new(big.Int).Add(n, one), // g = n + 1
+		},
+		p:         p,
+		pp:        pp,
+		pminusone: pminusone,
+		q:         q,
+		qq:        qq,
+		qminusone: qminusone,
+		pinvq:     new(big.Int).ModInverse(p, q),
+		dp:        dp,
+		dq:        dq,
+		hp:        h(p, pp, n),
+		hq:        h(q, qq, n),
+		n:         n,
+	}
 }
 
 // PublicKey represents the public part of a Paillier key.
@@ -142,7 +174,8 @@ func EncryptAndNonce(pubKey *PublicKey, plainText []byte) ([]byte, *big.Int, err
 	if err != nil {
 		return nil, nil, err
 	}
-
+	//todo bai fix
+	//r = big.NewInt(37)
 	c, err := EncryptWithNonce(pubKey, r, plainText)
 	if err != nil {
 		return nil, nil, err
@@ -240,7 +273,7 @@ func Mul(pubKey *PublicKey, cipher []byte, constant []byte) []byte {
 	return new(big.Int).Exp(c, x, pubKey.NSquared).Bytes()
 }
 
-/// Extract randomness component of a zero ciphertext. todo bai
+/// Extract randomness component of a zero ciphertext.
 func ExtractNroot(key *PrivateKey, z *big.Int) *big.Int {
 	zp, zq := crtDecompose(z, key.p, key.q)
 	rp := new(big.Int).Exp(zp, key.dp, key.p)

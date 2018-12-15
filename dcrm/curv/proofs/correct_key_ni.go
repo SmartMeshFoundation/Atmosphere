@@ -4,12 +4,10 @@ import (
 	"math/big"
 	"reflect"
 
-	"fmt"
-
-	"github.com/SmartMeshFoundation/Atmosphere/log"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
 )
 
+//证明拥有一个paillier私钥??
 type NICorrectKeyProof struct {
 	sigma []*big.Int
 }
@@ -22,7 +20,7 @@ const M2 = 11
 const DIGEST_SIZE = 256
 
 func compute_digest(inputs ...[]byte) *big.Int {
-	digest := utils.Sha3(inputs...)
+	digest := utils.ShaSecret(inputs...)
 	return new(big.Int).SetBytes(digest[:])
 }
 
@@ -45,6 +43,7 @@ func CreateNICorrectKeyProof(key *PrivateKey) *NICorrectKeyProof {
 	}
 }
 
+//const
 func (proof *NICorrectKeyProof) Verify(pubkey *PublicKey) bool {
 	keyLength := pubkey.N.BitLen()
 	saltBn := new(big.Int).SetBytes(SALT_STRING)
@@ -77,9 +76,9 @@ func mask_generation(outLength int, seed *big.Int) *big.Int {
 	}
 	result := big.NewInt(0)
 	for i := 0; i < len(msklenHashs); i++ {
-		log.Trace(fmt.Sprintf("result=%s", result.Text(16)))
+		//log.Trace(fmt.Sprintf("result=%s", result.Text(16)))
 		xtmp := msklenHashs[i]
-		log.Trace(fmt.Sprintf("xtmp=%s", xtmp.Text(16)))
+		//log.Trace(fmt.Sprintf("xtmp=%s", xtmp.Text(16)))
 		xtmp.Lsh(xtmp, uint(i*DIGEST_SIZE))
 		result.Add(result, xtmp)
 	}

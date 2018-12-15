@@ -36,6 +36,9 @@ func (g *GE) Clone() *GE {
 		Y: new(big.Int).Set(g.Y),
 	}
 }
+func (g *GE) String() string {
+	return Xytostr(g.X, g.Y)
+}
 
 type ShamirSecretSharing struct {
 	Threshold  int
@@ -44,7 +47,7 @@ type ShamirSecretSharing struct {
 
 type VerifiableSS struct {
 	Parameters  ShamirSecretSharing
-	Commitments []*GE
+	Commitments []*GE //多项式的commit,第0个,也就是常数项,是secret对应的公钥
 }
 
 func Share(t, n int, secret *big.Int) (*VerifiableSS, []*big.Int) {
@@ -208,6 +211,8 @@ func Xytostr(x, y *big.Int) string {
 	s := fmt.Sprintf("%s%s", hex.EncodeToString(x2), hex.EncodeToString(y2))
 	return s
 }
+
+//验证我share出去的secret share,和index一一对应关系,index是下标加1 const
 func (v *VerifiableSS) ValidateShare(secretShare *big.Int, index int) bool {
 	x, y := S.ScalarBaseMult(secretShare.Bytes())
 	ssPoint := &GE{x, y}
@@ -215,22 +220,23 @@ func (v *VerifiableSS) ValidateShare(secretShare *big.Int, index int) bool {
 	indexFe = indexFe.Mod(indexFe, S.N)
 	l := len(v.Commitments)
 	log.Trace(fmt.Sprintf("indexfe=%s", indexFe))
-	head := v.Commitments[l-1]
+	head := v.Commitments[l-1].Clone()
 	for j := l - 2; j >= 0; j-- {
 		c := v.Commitments[j]
-		log.Trace(fmt.Sprintf("acc=%s,x=%s", Xytostr(head.X, head.Y), Xytostr(c.X, c.Y)))
+		//log.Trace(fmt.Sprintf("acc=%s,x=%s", Xytostr(head.X, head.Y), Xytostr(c.X, c.Y)))
 		x, y = S.ScalarMult(head.X, head.Y, indexFe.Bytes())
 		log.Trace(fmt.Sprintf("t=%s", Xytostr(x, y)))
 		x, y = PointAdd(x, y, c.X, c.Y)
 		//log.Trace(fmt.Sprintf("x1=%s,y1=%s", x.Text(16), y.Text(16)))
 		//x, y = S.Add(head.X, head.Y, x, y)
-		log.Trace(fmt.Sprintf("after add %s", Xytostr(x, y)))
+		//log.Trace(fmt.Sprintf("after add %s", Xytostr(x, y)))
 		head = &GE{x, y}
 	}
 	log.Trace(fmt.Sprintf("sspoint=%s,commit_to_point=%s", utils.StringInterface(ssPoint, 3), utils.StringInterface(head, 3)))
 	return ssPoint.X.Cmp(head.X) == 0 && ssPoint.Y.Cmp(head.Y) == 0
 }
 
+//MapShareToNewParams 给定的参数,不会发生变化,这是系数? 给相同的index和s,结果返回肯定相同. const
 func (v *VerifiableSS) MapShareToNewParams(index int, s []int) *big.Int {
 	if len(s) <= v.reconstructLimit() {
 		panic("reconstructLimit")
@@ -308,6 +314,7 @@ func (v *VerifiableSS) reconstructLimit() int {
 	return v.Parameters.Threshold + 1
 }
 
+//根据部分信息,还原私钥 const func
 func (v *VerifiableSS) Reconstruct(indices []int, shares []*big.Int) *big.Int {
 	if len(shares) != len(indices) {
 		panic("arg error")
@@ -327,14 +334,14 @@ func (v *VerifiableSS) Reconstruct(indices []int, shares []*big.Int) *big.Int {
 // Invert calculates the inverse of k in GF(P) using Fermat's method.
 // This has better constant-time properties than Euclid's method (implemented
 // in math/big.Int.ModInverse) although math/big itself isn't strictly
-// constant-time so it's not perfect.
+// constant-time so it's not perfect.  fermatInverse
 func Invert(k, N *big.Int) *big.Int {
 	two := big.NewInt(2)
 	nMinus2 := new(big.Int).Sub(N, two)
 	return new(big.Int).Exp(k, nMinus2, N)
 }
 
-func str2bigint(s string) *big.Int {
+func Str2bigint(s string) *big.Int {
 	i := new(big.Int)
 	i.SetString(s, 16)
 	return i

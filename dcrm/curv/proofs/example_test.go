@@ -12,7 +12,7 @@ import (
 //   * Homomorphic cipher text addition
 //   * Homomorphic addition with constant
 //   * Homomorphic multiplication with constant
-func main() {
+func ExampleTest() {
 	// Generate a 128-bit private key.
 	privKey, err := GenerateKey(rand.Reader, 128)
 	if err != nil {

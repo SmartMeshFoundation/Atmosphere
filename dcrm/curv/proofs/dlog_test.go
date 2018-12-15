@@ -15,7 +15,7 @@ func init() {
 }
 
 func TestProve(t *testing.T) {
-	witness := big.NewInt(utils.NewRandomInt64())
+	witness := big.NewInt(30)
 	proof := Prove(witness)
 	log.Trace(fmt.Sprintf("proof=%s", utils.StringInterface(proof, 7)))
 	if !Verify(proof) {

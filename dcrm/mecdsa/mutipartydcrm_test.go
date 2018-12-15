@@ -51,8 +51,29 @@ func TestKeyGenTN(t *testing.T) {
 }
 
 func TestSign(t *testing.T) {
-	err := Sign(2, 5, 4, []int{4, 1, 2, 3})
+	err := Sign(2, 5, 4, []int{0, 3, 4, 1})
 	if err != nil {
 		t.Error(err)
 	}
+}
+
+func TestSign2(t *testing.T) {
+	err := Sign2(2, 5, 4, []int{0, 3, 4, 1})
+	if err != nil {
+		t.Error(err)
+	}
+	err = Sign2(2, 7, 4, []int{0, 3, 4, 1})
+	if err != nil {
+		t.Error(err)
+	}
+	return
+	err = Sign2(5, 10, 7, []int{0, 3, 4, 1, 2, 5, 6})
+	if err != nil {
+		t.Error(err)
+	}
+	err = Sign2(6, 12, 8, []int{0, 3, 4, 1, 5, 6, 7, 8})
+	if err != nil {
+		t.Error(err)
+	}
+
 }

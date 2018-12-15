@@ -14,6 +14,7 @@ import (
 
 var S = secp256k1.S256()
 
+//证明Pk这个公钥对应的私钥,我有
 type DLogProof struct {
 	PK                *secret_sharing.GE
 	pkTRandCommitment *secret_sharing.GE
@@ -29,17 +30,20 @@ func (d *DLogProof) String() string {
 }
 func Prove(sk *big.Int) *DLogProof {
 	key, _ := crypto.GenerateKey()
-	key.D = big.NewInt(37)
+	//todo fixme bai
+	//key.D = big.NewInt(37)
 	skTRandCommitment := key.D
 	pk_t_rand_commitment_x, pk_t_rand_commitment_y := secp256k1.S256().ScalarBaseMult(skTRandCommitment.Bytes())
 	pkx, pky := crypto.S256().ScalarBaseMult(sk.Bytes())
-	challenge := utils.Sha3(pk_t_rand_commitment_x.Bytes(),
+	challenge := utils.ShaSecret(pk_t_rand_commitment_x.Bytes(),
 		secp256k1.S256().Gx.Bytes(),
 		pkx.Bytes())
 	challengeSK := new(big.Int).SetBytes(challenge[:])
-	log.Trace(fmt.Sprintf("challengeSK=%s", challengeSK.Text(16)))
+	log.Trace(fmt.Sprintf("challengeSK=%s", challengeSK.Text(10)))
 	challengeSK.Mod(challengeSK, S.N)
+	log.Trace(fmt.Sprintf("challenge_fe=%s", challengeSK.Text(16)))
 	secret_sharing.ModMul(challengeSK, sk)
+
 	challengeResponse := secret_sharing.ModSub(skTRandCommitment, challengeSK)
 	return &DLogProof{
 		PK:                &secret_sharing.GE{pkx, pky},
@@ -48,9 +52,9 @@ func Prove(sk *big.Int) *DLogProof {
 	}
 }
 
-//不会修改任何proof的内容
+//不会修改任何proof的内容 const
 func Verify(proof *DLogProof) bool {
-	challenge := utils.Sha3(
+	challenge := utils.ShaSecret(
 		proof.pkTRandCommitment.X.Bytes(),
 		S.Gx.Bytes(),
 		proof.PK.X.Bytes(),
