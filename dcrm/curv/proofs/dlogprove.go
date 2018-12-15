@@ -5,8 +5,7 @@ import (
 
 	"fmt"
 
-	"github.com/SmartMeshFoundation/Atmosphere/dcrm/curv/secret_sharing"
-	"github.com/SmartMeshFoundation/Atmosphere/log"
+	"github.com/SmartMeshFoundation/Atmosphere/dcrm/curv/share"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
@@ -16,38 +15,37 @@ var S = secp256k1.S256()
 
 //证明Pk这个公钥对应的私钥,我有
 type DLogProof struct {
-	PK                *secret_sharing.GE
-	pkTRandCommitment *secret_sharing.GE
-	ChallengeResponse *big.Int
+	PK                *share.SPubKey
+	pkTRandCommitment *share.SPubKey
+	ChallengeResponse share.SPrivKey
 }
 
 func (d *DLogProof) String() string {
 	return fmt.Sprintf("dlog={pk=%s,pkt=%s,challengeresponse=%s}",
-		secret_sharing.Xytostr(d.PK.X, d.PK.Y),
-		secret_sharing.Xytostr(d.pkTRandCommitment.X, d.pkTRandCommitment.Y),
-		d.ChallengeResponse.Text(16),
+		share.Xytostr(d.PK.X, d.PK.Y),
+		share.Xytostr(d.pkTRandCommitment.X, d.pkTRandCommitment.Y),
+		d.ChallengeResponse,
 	)
 }
-func Prove(sk *big.Int) *DLogProof {
-	key, _ := crypto.GenerateKey()
+func Prove(sk share.SPrivKey) *DLogProof {
 	//todo fixme bai
 	//key.D = big.NewInt(37)
-	skTRandCommitment := key.D
-	pk_t_rand_commitment_x, pk_t_rand_commitment_y := secp256k1.S256().ScalarBaseMult(skTRandCommitment.Bytes())
-	pkx, pky := crypto.S256().ScalarBaseMult(sk.Bytes())
-	challenge := utils.ShaSecret(pk_t_rand_commitment_x.Bytes(),
+	skTRandCommitment := share.RandomPrivateKey()
+	randCommitmentX, randCommitmentY := secp256k1.S256().ScalarBaseMult(skTRandCommitment.Bytes())
+	pkx, pky := crypto.S256().ScalarBaseMult(sk.D.Bytes())
+	challenge := utils.ShaSecret(randCommitmentX.Bytes(),
 		secp256k1.S256().Gx.Bytes(),
 		pkx.Bytes())
-	challengeSK := new(big.Int).SetBytes(challenge[:])
-	log.Trace(fmt.Sprintf("challengeSK=%s", challengeSK.Text(10)))
-	challengeSK.Mod(challengeSK, S.N)
-	log.Trace(fmt.Sprintf("challenge_fe=%s", challengeSK.Text(16)))
-	secret_sharing.ModMul(challengeSK, sk)
+	challengeSK := share.BigInt2PrivateKey(new(big.Int).SetBytes(challenge[:]))
+	//log.Trace(fmt.Sprintf("challengeSK=%s", challengeSK))
+	//challengeSK.Mod(challengeSK, S.N)
+	//log.Trace(fmt.Sprintf("challenge_fe=%s", challengeSK))
+	share.ModMul(challengeSK, sk)
 
-	challengeResponse := secret_sharing.ModSub(skTRandCommitment, challengeSK)
+	challengeResponse := share.ModSub(skTRandCommitment, challengeSK)
 	return &DLogProof{
-		PK:                &secret_sharing.GE{pkx, pky},
-		pkTRandCommitment: &secret_sharing.GE{pk_t_rand_commitment_x, pk_t_rand_commitment_y},
+		PK:                &share.SPubKey{pkx, pky},
+		pkTRandCommitment: &share.SPubKey{randCommitmentX, randCommitmentY},
 		ChallengeResponse: challengeResponse,
 	}
 }
@@ -63,7 +61,7 @@ func Verify(proof *DLogProof) bool {
 	challengeSK.Mod(challengeSK, S.N)
 	pkChallengeX, pkChallengeY := S.ScalarMult(proof.PK.X, proof.PK.Y, challengeSK.Bytes())
 	pkVerifierX, pkVerifierY := S.ScalarBaseMult(proof.ChallengeResponse.Bytes())
-	pkVerifierX, pkVerifierY = secret_sharing.PointAdd(pkVerifierX, pkVerifierY, pkChallengeX, pkChallengeY)
+	pkVerifierX, pkVerifierY = share.PointAdd(pkVerifierX, pkVerifierY, pkChallengeX, pkChallengeY)
 	return pkVerifierX.Cmp(proof.pkTRandCommitment.X) == 0 &&
 		pkVerifierY.Cmp(proof.pkTRandCommitment.Y) == 0
 }

@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/SmartMeshFoundation/Atmosphere/dcrm/curv/share"
 	"github.com/SmartMeshFoundation/Atmosphere/log"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
 )
@@ -16,7 +17,7 @@ func init() {
 
 func TestProve(t *testing.T) {
 	witness := big.NewInt(30)
-	proof := Prove(witness)
+	proof := Prove(share.BigInt2PrivateKey(witness))
 	log.Trace(fmt.Sprintf("proof=%s", utils.StringInterface(proof, 7)))
 	if !Verify(proof) {
 		t.Error("should pass")

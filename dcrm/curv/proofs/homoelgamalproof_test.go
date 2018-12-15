@@ -5,33 +5,33 @@ import (
 
 	"math/big"
 
-	"github.com/SmartMeshFoundation/Atmosphere/dcrm/curv/secret_sharing"
+	"github.com/SmartMeshFoundation/Atmosphere/dcrm/curv/share"
 )
 
 func TestCreateHomoELGamalProof(t *testing.T) {
 	witness := &HomoElGamalWitness{
-		x: secret_sharing.RandomPrivateKey(),
-		r: secret_sharing.RandomPrivateKey(),
+		x: share.RandomPrivateKey(),
+		r: share.RandomPrivateKey(),
 	}
 
-	h := secret_sharing.RandomPrivateKey()
+	h := share.RandomPrivateKey()
 	Hx, Hy := S.ScalarBaseMult(h.Bytes())
-	y := secret_sharing.RandomPrivateKey()
+	y := share.RandomPrivateKey()
 	Yx, Yy := S.ScalarBaseMult(y.Bytes())
 	tx := new(big.Int).Set(Hx)
 	ty := new(big.Int).Set(Hy)
 	tx, ty = S.ScalarMult(tx, ty, witness.x.Bytes())
 	tx2, ty2 := S.ScalarMult(Yx, Yy, witness.r.Bytes())
 
-	Dx, Dy := secret_sharing.PointAdd(tx, ty, tx2, ty2)
+	Dx, Dy := share.PointAdd(tx, ty, tx2, ty2)
 
 	Ex, Ey := S.ScalarBaseMult(witness.r.Bytes())
 	delta := &HomoElGamalStatement{
-		G: &secret_sharing.GE{S.Gx, S.Gy},
-		H: &secret_sharing.GE{Hx, Hy},
-		Y: &secret_sharing.GE{Yx, Yy},
-		D: &secret_sharing.GE{Dx, Dy},
-		E: &secret_sharing.GE{Ex, Ey},
+		G: &share.SPubKey{S.Gx, S.Gy},
+		H: &share.SPubKey{Hx, Hy},
+		Y: &share.SPubKey{Yx, Yy},
+		D: &share.SPubKey{Dx, Dy},
+		E: &share.SPubKey{Ex, Ey},
 	}
 
 	prove := CreateHomoELGamalProof(witness, delta)
@@ -74,13 +74,13 @@ test cryptographic_primitives::proofs::sigma_correct_homomrphic_elgamal_enc::tes
 
 */
 func TestCreateHashFromGE(t *testing.T) {
-	x1, y1 := secret_sharing.Strtoxy("c1bbd91326c1ce1881f8ca694d6c588e1fd7986683b973720085ac1a51610f88372e6568d68da50d015751f944c6ee8d7f61321559dee9eee51a7b08c852e2ff")
-	x2, y2 := secret_sharing.Strtoxy("f30bc95889e783507bc64fcb6e9a8f5e83dc3b0917bf38759bdc79331edd179a399c0dd1ccf2793d83652c31848613baa10fb23333ec59b4147a6f18cd9ae6eb")
-	r := secret_sharing.Str2bigint("eeaef14a20bfe6e2470b5ddfeef9ae3de244b47d2cd2cbb06785e861b035bca9")
-	rs := CreateHashFromGE([]*secret_sharing.GE{
+	x1, y1 := share.Strtoxy("c1bbd91326c1ce1881f8ca694d6c588e1fd7986683b973720085ac1a51610f88372e6568d68da50d015751f944c6ee8d7f61321559dee9eee51a7b08c852e2ff")
+	x2, y2 := share.Strtoxy("f30bc95889e783507bc64fcb6e9a8f5e83dc3b0917bf38759bdc79331edd179a399c0dd1ccf2793d83652c31848613baa10fb23333ec59b4147a6f18cd9ae6eb")
+	r := share.Str2bigint("eeaef14a20bfe6e2470b5ddfeef9ae3de244b47d2cd2cbb06785e861b035bca9")
+	rs := CreateHashFromGE([]*share.SPubKey{
 		{x1, y1}, {x2, y2},
 	})
-	if r.Cmp(rs) != 0 {
+	if r.Cmp(rs.D) != 0 {
 		t.Error("not equal")
 	}
 }

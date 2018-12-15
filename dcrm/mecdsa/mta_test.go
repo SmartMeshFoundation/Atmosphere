@@ -2,21 +2,20 @@ package mecdsa
 
 import (
 	"crypto/rand"
-	"math/big"
 	"testing"
 
 	"github.com/SmartMeshFoundation/Atmosphere/dcrm/curv/proofs"
-	"github.com/SmartMeshFoundation/Atmosphere/dcrm/curv/secret_sharing"
+	"github.com/SmartMeshFoundation/Atmosphere/dcrm/curv/share"
 )
 
 func TestMta(t *testing.T) {
-	aliceInput := secret_sharing.RandomPrivateKey()
+	aliceInput := share.RandomPrivateKey()
 	privAlice, err := proofs.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	bobInput := secret_sharing.RandomPrivateKey()
+	bobInput := share.RandomPrivateKey()
 	ma, err := NewMessageA(aliceInput, &privAlice.PublicKey)
 	if err != nil {
 		t.Error(err)
@@ -28,11 +27,11 @@ func TestMta(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	left := new(big.Int).Set(alpha)
-	secret_sharing.ModAdd(left, beta)
-	right := new(big.Int).Set(aliceInput)
-	secret_sharing.ModMul(right, bobInput)
-	if left.Cmp(right) != 0 {
+	left := alpha.Clone()
+	share.ModAdd(left, beta)
+	right := aliceInput.Clone()
+	share.ModMul(right, bobInput)
+	if left.D.Cmp(right.D) != 0 {
 		t.Error("not equal")
 	}
 }

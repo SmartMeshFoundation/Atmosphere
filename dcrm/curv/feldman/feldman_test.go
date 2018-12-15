@@ -1,4 +1,4 @@
-package secret_sharing
+package feldman
 
 import (
 	"math/big"
@@ -7,6 +7,7 @@ import (
 
 	"fmt"
 
+	"github.com/SmartMeshFoundation/Atmosphere/dcrm/curv/share"
 	"github.com/SmartMeshFoundation/Atmosphere/log"
 	"github.com/SmartMeshFoundation/Atmosphere/utils"
 	"github.com/stretchr/testify/assert"
@@ -17,10 +18,10 @@ func init() {
 }
 
 func TestEvaluatePolynomial(t *testing.T) {
-	cf := []*big.Int{
-		Str2bigint("34930839620e77f1a7560698d20469b9e5f102f20980d204f73e6d37bb91f18c"),
-		Str2bigint("c5a8645d5d9c9f7362ccc677491a309c6e232573c7ed7a0bf1de65e25ac80772"),
-		Str2bigint("723981eb59fe890d67e536a2efc91f53d56a2bd37db7a0694bc46fbeb77b059c"),
+	cf := []share.SPrivKey{
+		{share.Str2bigint("34930839620e77f1a7560698d20469b9e5f102f20980d204f73e6d37bb91f18c")},
+		{share.Str2bigint("c5a8645d5d9c9f7362ccc677491a309c6e232573c7ed7a0bf1de65e25ac80772")},
+		{share.Str2bigint("723981eb59fe890d67e536a2efc91f53d56a2bd37db7a0694bc46fbeb77b059c")},
 	}
 	//point := Str2bigint("0x0000000000000000000000000000000000000000000000000000000000000001")
 	//res := Str2bigint("0x0bf422f5b4f7012edc2057ba2fca02eb89c6519a955ee611efc0afdf3825620a")
@@ -36,13 +37,13 @@ func TestEvaluatePolynomial(t *testing.T) {
 	*/
 }
 func TestScalarMult(t *testing.T) {
-	a := Str2bigint("47626cae7657d2825645e60cf2d765f7470dfb55a6e2b65db1937fe6ad975d78")
-	x, y := S.ScalarBaseMult(a.Bytes())
-	s := Xytostr(x, y)
+	a := share.Str2bigint("47626cae7657d2825645e60cf2d765f7470dfb55a6e2b65db1937fe6ad975d78")
+	x, y := share.S.ScalarBaseMult(a.Bytes())
+	s := share.Xytostr(x, y)
 	t.Logf(s)
 }
 func TestShare(t *testing.T) {
-	v, _ := Share(3, 5, big.NewInt(30))
+	v, _ := Share(3, 5, share.BigInt2PrivateKey(big.NewInt(30)))
 	t.Logf("v=%s", utils.StringInterface(v, 7))
 }
 func TestInvert(t *testing.T) {
@@ -64,9 +65,9 @@ func TestInvert(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		a := Str2bigint(tt.a)
-		ainv := Invert(a, S.N)
-		if ainv.Cmp(Str2bigint(tt.r)) != 0 {
+		a := share.Str2bigint(tt.a)
+		ainv := share.Invert(a, share.S.N)
+		if ainv.Cmp(share.Str2bigint(tt.r)) != 0 {
 			t.Error("notequal")
 		}
 	}
@@ -74,7 +75,7 @@ func TestInvert(t *testing.T) {
 
 func TestVerifiableSS_ValidateShare37(t *testing.T) {
 	var seckey int64 = 99993993
-	v, secretShares := Share(2, 7, big.NewInt(seckey))
+	v, secretShares := Share(2, 7, share.BigInt2PrivateKey(big.NewInt(seckey)))
 	log.Trace(fmt.Sprintf("v=%s", utils.StringInterface(v, 7)))
 	s2 := secretShares[0:1]
 	s2 = append(s2, secretShares[6])
@@ -82,7 +83,7 @@ func TestVerifiableSS_ValidateShare37(t *testing.T) {
 	s2 = append(s2, secretShares[4])
 
 	secretRescontructed := v.Reconstruct([]int{0, 6, 2, 4}, s2)
-	if secretRescontructed.Cmp(big.NewInt(seckey)) != 0 {
+	if secretRescontructed.D.Cmp(big.NewInt(seckey)) != 0 {
 		t.Error("reconstructed error")
 		return
 	}
@@ -98,19 +99,19 @@ func TestVerifiableSS_ValidateShare37(t *testing.T) {
 	l3 := v.MapShareToNewParams(4, s)
 	l4 := v.MapShareToNewParams(6, s)
 	log.Trace(fmt.Sprintf("l0=%s\n,l1=%s\n,l2=%s\n,l3=%s\n,l4=%s\n",
-		l0.Text(16), l1.Text(16), l2.Text(16),
-		l3.Text(16), l4.Text(16),
+		l0, l1, l2,
+		l3, l4,
 	))
 }
 
 func TestVerifiableSS_ValidateShare(t *testing.T) {
-	v, secretShares := Share(3, 5, big.NewInt(70))
+	v, secretShares := Share(3, 5, share.BigInt2PrivateKey(big.NewInt(70)))
 	log.Trace(fmt.Sprintf("v=%s", utils.StringInterface(v, 7)))
 	s2 := secretShares[0:3]
 	s2 = append(s2, secretShares[4])
 
 	secretRescontructed := v.Reconstruct([]int{0, 1, 2, 4}, s2)
-	if secretRescontructed.Cmp(big.NewInt(70)) != 0 {
+	if secretRescontructed.D.Cmp(big.NewInt(70)) != 0 {
 		t.Error("reconstructed error")
 		return
 	}
@@ -126,19 +127,18 @@ func TestVerifiableSS_ValidateShare(t *testing.T) {
 	l3 := v.MapShareToNewParams(3, s)
 	l4 := v.MapShareToNewParams(4, s)
 	log.Trace(fmt.Sprintf("l0=%s\n,l1=%s\n,l2=%s\n,l3=%s\n,l4=%s\n",
-		l0.Text(16), l1.Text(16), l2.Text(16),
-		l3.Text(16), l4.Text(16),
+		l0, l1, l2, l3, l4,
 	))
 }
 
 func TestVerifiableSS_ValidateShare2(t *testing.T) {
-	v, secretShares := Share(2, 4, big.NewInt(70))
+	v, secretShares := Share(2, 4, share.BigInt2PrivateKey(big.NewInt(70)))
 	log.Trace(fmt.Sprintf("v=%s", utils.StringInterface(v, 7)))
 	s2 := secretShares[0:3]
 	//s2 = append(s2, secretShares[3])
 
 	secretRescontructed := v.Reconstruct([]int{0, 1, 2}, s2)
-	if secretRescontructed.Cmp(big.NewInt(70)) != 0 {
+	if secretRescontructed.D.Cmp(big.NewInt(70)) != 0 {
 		t.Logf("secretRescontructed=%s", secretRescontructed)
 		t.Error("reconstructed error")
 		return
@@ -205,10 +205,10 @@ func TestPointSub(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		ax, ay := Strtoxy(tt.a)
-		bx, by := Strtoxy(tt.b)
-		rx, ry := Strtoxy(tt.r)
-		x, y := PointSub(ax, ay, bx, by)
+		ax, ay := share.Strtoxy(tt.a)
+		bx, by := share.Strtoxy(tt.b)
+		rx, ry := share.Strtoxy(tt.r)
+		x, y := share.PointSub(ax, ay, bx, by)
 		if x.Cmp(rx) != 0 || y.Cmp(ry) != 0 {
 			t.Error("not equal")
 		}
@@ -217,22 +217,22 @@ func TestPointSub(t *testing.T) {
 }
 
 func TestLsh(t *testing.T) {
-	a := Str2bigint("28064132643846632695607237370921442439956604667885930229835793462081545041461")
-	x := Str2bigint("72030963781072581219587713863143054310990281998109173424654097085162671284585")
+	a := share.Str2bigint("28064132643846632695607237370921442439956604667885930229835793462081545041461")
+	x := share.Str2bigint("72030963781072581219587713863143054310990281998109173424654097085162671284585")
 	y := x.Lsh(x, 256)
 	s := a.Add(a, y)
 	t.Logf(s.Text(16))
-	a = Str2bigint("64707283623258898139504461127142352865415264410956389544247533112393852326510")
+	a = share.Str2bigint("64707283623258898139504461127142352865415264410956389544247533112393852326510")
 	a.Lsh(a, 256)
 	t.Logf("shl=%s", a.Text(10))
 
 }
 
 func TestPointAdd(t *testing.T) {
-	x1, y1 := Strtoxy("4a74630709c49150d10f0e607670f2c73dc2865c8850c5d7514e386eed5cb299b34852ce4e6f4b192e8ffca93f502fe4e877d52065805e11c0899fefbf447a07")
-	x2, y2 := Strtoxy("b2cdbce035a29196c7dc1c79de6da01555645ada71174e7686111d00a55b8fa879ffb8a40c7bef590a944dd6a2d63d4472b30ac40b0f99d373350d0c8246d42d")
-	x, y := PointAdd(x1, y1, x2, y2)
+	x1, y1 := share.Strtoxy("4a74630709c49150d10f0e607670f2c73dc2865c8850c5d7514e386eed5cb299b34852ce4e6f4b192e8ffca93f502fe4e877d52065805e11c0899fefbf447a07")
+	x2, y2 := share.Strtoxy("b2cdbce035a29196c7dc1c79de6da01555645ada71174e7686111d00a55b8fa879ffb8a40c7bef590a944dd6a2d63d4472b30ac40b0f99d373350d0c8246d42d")
+	x, y := share.PointAdd(x1, y1, x2, y2)
 	t.Logf("x=%s,y=%s", x.Text(16), y.Text(16))
-	x, y = PointAdd(x2, y2, x1, y1)
+	x, y = share.PointAdd(x2, y2, x1, y1)
 	t.Logf("x=%s,y=%s", x.Text(16), y.Text(16))
 }
